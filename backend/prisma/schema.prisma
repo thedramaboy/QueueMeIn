@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  OWNER
+  STAFF
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum NotificationType {
+  REMINDER_DAY_BEFORE
+  REMINDER_MORNING
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_RESCHEDULED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Branch {
+  id        Int      @id @default(autoincrement())
+  name      String
+  location  String
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users          User[]
+  doctorBranches DoctorBranch[]
+  schedules      Schedule[]
+  bookings       Booking[]
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(STAFF)
+  branchId  Int?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  branch   Branch?   @relation(fields: [branchId], references: [id])
+  bookings Booking[]
+}
+
+model Doctor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  specialty String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  doctorBranches DoctorBranch[]
+  schedules      Schedule[]
+  bookings       Booking[]
+}
+
+model DoctorBranch {
+  id       Int @id @default(autoincrement())
+  doctorId Int
+  branchId Int
+
+  doctor Doctor @relation(fields: [doctorId], references: [id])
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@unique([doctorId, branchId])
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  services Service[]
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  name        String
+  categoryId  Int
+  duration    Int
+  price       Decimal?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  category Category  @relation(fields: [categoryId], references: [id])
+  bookings Booking[]
+}
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  branchId  Int
+  doctorId  Int
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+  doctor Doctor @relation(fields: [doctorId], references: [id])
+
+  @@unique([branchId, doctorId, dayOfWeek])
+}
+
+model Patient {
+  id             Int      @id @default(autoincrement())
+  opdNumber      String   @unique
+  nationalId     String?  @unique
+  firstName      String
+  lastName       String
+  nickname       String?
+  phone          String   @unique
+  age            Int?
+  allergyHistory String?
+  lineUserId     String?
+  isNewPatient   Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  bookings Booking[]
+}
+
+model Booking {
+  id              Int           @id @default(autoincrement())
+  bookingNo       String        @unique
+  patientId       Int
+  doctorId        Int
+  branchId        Int
+  serviceId       Int
+  date            DateTime
+  startTime       String
+  endTime         String
+  status          BookingStatus @default(PENDING)
+  deposit         Decimal?
+  note            String?
+  createdBy       Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  rescheduledFrom Int?
+  rescheduledAt   DateTime?
+
+  patient          Patient        @relation(fields: [patientId], references: [id])
+  doctor           Doctor         @relation(fields: [doctorId], references: [id])
+  branch           Branch         @relation(fields: [branchId], references: [id])
+  service          Service        @relation(fields: [serviceId], references: [id])
+  staff            User           @relation(fields: [createdBy], references: [id])
+  notifications    Notification[]
+  originalBooking  Booking?       @relation("RescheduledBooking", fields: [rescheduledFrom], references: [id])
+  rescheduledTo    Booking[]      @relation("RescheduledBooking")
+}
+
+model Notification {
+  id          Int                @id @default(autoincrement())
+  bookingId   Int
+  type        NotificationType
+  status      NotificationStatus @default(PENDING)
+  scheduledAt DateTime
+  sentAt      DateTime?
+  message     String
+  error       String?
+  createdAt   DateTime           @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
