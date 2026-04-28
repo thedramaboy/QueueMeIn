@@ -25,7 +25,7 @@ export const getPatients = async (req, res) => {
     res.json(patients);
   } catch (error) {
     res.status(500).json({
-      message: "ไม่สามารถค้นหาลูกค้าทั้งหมดได้",
+      message: "ไม่สามารถดึงข้อมูลลูกค้าทั้งหมดได้",
       error: error.message,
     });
   }
@@ -104,7 +104,7 @@ export const createPatient = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "สร้างข้อมูลลูกค้าเรียบร้อย",
+      message: "สร้างข้อมูลลูกค้าสำเร็จ",
       patient,
     });
   } catch (error) {
