@@ -115,11 +115,33 @@ export const updateDoctor = async (req, res) => {
       doctor,
     });
   } catch (error) {
+    res.status(500).json({
+      message: "ไม่สามารถแก้ไข/ อัปเดตข้อมูลหมอได้",
+      error: error.message,
+    });
+  }
+};
+
+export const deleteDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.doctor.findUnique({
+      where: { id: Number(id) },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลหมอ" });
+    }
+
+    await prisma.doctor.update({
+      where: { id: Number(id) },
+      data: { isActive: false },
+    });
+
+    res.json({ message: "ลบรายชื่อหมอออกจากระบบเรียบร้อย" });
+  } catch (error) {
     res
       .status(500)
-      .json({
-        message: "ไม่สามารถแก้ไข/ อัปเดตข้อมูลหมอได้",
-        error: error.message,
-      });
+      .json({ message: "ไม่สามารถลบหมอออกจากระบบได้", error: error.message });
   }
 };
