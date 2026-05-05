@@ -42,9 +42,10 @@ export const createCategory = async (req, res) => {
       message: "สร้าง Category เรียบร้อยแล้ว",
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "ไม่สามารถสร้าง Category ได้", error: error.message });
+    res.status(500).json({
+      message: "ไม่สามารถสร้างประเภทการบริการได้",
+      error: error.message,
+    });
   }
 };
 
@@ -57,7 +58,7 @@ export const updateCategory = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
-      return res.status(404).json({ message: "ไม่พบ Category นี้ในระบบ" });
+      return res.status(404).json({ message: "ไม่พบประเภทการบริการนี้ในระบบ" });
     }
 
     const category = await prisma.category.update({
@@ -66,12 +67,12 @@ export const updateCategory = async (req, res) => {
     });
 
     res.json({
-      message: "แก้ไข Category สำเร็จ",
+      message: "แก้ไขประเภทการบริการสำเร็จ",
       category,
     });
   } catch (error) {
     res.status(500).json({
-      message: "ไม่สามารถแก้ไข Category นี้ได้",
+      message: "ไม่สามารถแก้ไขประเภทการบริการนี้ได้",
       error: error.message,
     });
   }
