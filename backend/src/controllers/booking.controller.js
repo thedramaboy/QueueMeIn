@@ -11,11 +11,14 @@ export const getBookings = async (req, res) => {
 
     const bookings = await prisma.booking.findMany({
       where: {
-        ...(branchId && { brancId: Number(branchId) }),
+        ...(branchId && { branchId: Number(branchId) }),
         ...(doctorId && { doctorId: Number(doctorId) }),
         ...(status && { status }),
         ...(date && {
-          date: new Date(date),
+          date: {
+            gte: new Date(`${date}T00:00:00.000Z`),
+            lte: new Date(`${date}T23:59:59.999Z`),
+          },
         }),
       },
       include: {
