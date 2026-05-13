@@ -98,14 +98,261 @@ const PatientsPage = () => {
                       </p>
                     )}
                   </td>
+                  <td className="px-6 py-4 text-gray-500">{patient.phone}</td>
+                  <td className="px-6 py-4 text-gray-500">
+                    {patient.age || "-"}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${patient.isNewPatient ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                    >
+                      {patient.isNewPatient ? "ใหม่" : "เก่า"}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      {showForm && (
+        <PatientForm
+          onClose={() => setShowForm(false)}
+          onSubmit={(data) => createMutation.mutate(data)}
+          isLoading={createMutation.isPending}
+          error={createMutation.error?.response?.data?.message}
+        />
+      )}
+
+      {selected && (
+        <PatientDetail
+          patient={selected}
+          onClose={() => setSelected(null)}
+          onDelete={() => {
+            deleteMutation.mutate(selected.id);
+            setSelected(null);
+          }}
+        />
+      )}
     </div>
   );
 };
+
+const PatientForm = ({ onClose, onSubmit, isLoading, error }) => {
+  const [form, setForm] = useState({
+    opdNumber: "",
+    firstName: "",
+    lastName: "",
+    nickname: "",
+    phone: "",
+    age: "",
+    allergyHistory: "",
+    nationalId: "",
+  });
+
+  const handleChange = (event) => {
+    setForm({ ...form, [event.target.name]: event.target.value });
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSubmit({
+      ...form,
+      age: form.age ? Number(form.age) : null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">เพิ่มลูกค้าใหม่</h2>
+          <button onClick={onClose}>
+            <X size={20} className="text-gray-400 hover:text-gray-600" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                เลข OPD *
+              </label>
+              <input
+                name="opdNumber"
+                value={form.opdNumber}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                เลขบัตรประชาชน
+              </label>
+              <input
+                name="nationalId"
+                value={form.nationalId}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">ชื่อ *</label>
+              <input
+                name="firstName"
+                value={form.firstName}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                นามสกุล *
+              </label>
+              <input
+                name="lastName"
+                value={form.lastName}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">ชื่อเล่น</label>
+              <input
+                name="nickname"
+                value={form.nickname}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">อายุ</label>
+              <input
+                name="age"
+                value={form.age}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">เบอร์โทร *</label>
+            <input
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              ประวัติแพ้ยา
+            </label>
+            <textarea
+              name="allergyHistory"
+              value={form.allergyHistory}
+              onChange={handleChange}
+              rows={2}
+              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 border rounded px-4 py-2 text-sm hover:bg-gray-50"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50"
+            >
+              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const PatientDetail = ({ patient, onClose, onDelete }) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">ข้อมูลลูกค้า</h2>
+          <button onClick={onClose}>
+            <X size={20} className="text-gray-400 hover:text-gray-600" />
+          </button>
+        </div>
+
+        <div className="space-y-3 text-sm">
+          <Row label="เลข OPD" value={patient.opdNumber} />
+          <Row
+            label="ชื่อ"
+            value={`${patient.firstName} ${patient.lastName}`}
+          />
+          <Row label="ชื่อเล่น" value={patient.nickname || "-"} />
+          <Row label="เบอร์โทร" value={patient.phone} />
+          <Row label="อายุ" value={patient.age || "-"} />
+          <Row
+            label="ประเภท"
+            value={patient.isNewPatient ? "ลูกค้าใหม่" : "ลูกค้าเก่า"}
+          />
+          <Row
+            label="แพ้ยา"
+            value={patient.allergyHistory || "-"}
+            valueClass="text-red-500"
+          />
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onDelete}
+            className="flex-1 border border-red-300 text-red-500 rounded px-4 py-2 text-sm hover:bg-red-50"
+          >
+            ลบ
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600"
+          >
+            ปิด
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Row = ({ label, value, valueClass = "text-gray-700" }) => (
+  <div className="flex justify-between py-2 border-b last:border-0">
+    <span className="text-gray-500">{label}</span>
+    <span className={valueClass}>{value}</span>
+  </div>
+);
 
 export default PatientsPage;
