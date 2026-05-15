@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import api from "./services/api.js";
 import DashboardPage from "./pages/admin/DashboardPage.jsx";
 import PatientsPage from "./pages/admin/PatientsPage.jsx";
+import BookingsPage from "./pages/admin/BookingsPage.jsx";
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuthStore();
@@ -53,6 +54,7 @@ const App = () => {
         >
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="patients" element={<PatientsPage />} />
+          <Route path="bookings" element={<BookingsPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
