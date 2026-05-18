@@ -9,6 +9,7 @@ import categoryRoutes from "./routes/category.routes.js";
 import serviceRoutes from "./routes/service.routes.js";
 import scheduleRoutes from "./routes/schedule.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
+import { startReminderJob } from "./jobs/reminder.job.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/bookings", bookingRoutes);
+startReminderJob();
 
 const PORT = process.env.PORT || 5000;
 
