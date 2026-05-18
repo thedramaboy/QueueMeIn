@@ -187,3 +187,11 @@ model Notification {
 
   booking Booking @relation(fields: [bookingId], references: [id])
 }
+
+model PendingLineUser {
+  id          Int      @id @default(autoincrement())
+  lineUserId  String   @unique
+  displayName String?
+  pictureUrl  String?
+  createdAt   DateTime @default(now())
+}
