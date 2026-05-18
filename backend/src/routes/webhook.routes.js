@@ -4,7 +4,7 @@ import {
   linkLineUser,
 } from "../controllers/webhook.controller.js";
 import auth from "../middlewares/auth.middleware.js";
-import allowRoles from "../middlewares/role.middleware";
+import allowRoles from "../middlewares/role.middleware.js";
 
 const router = Router();
 
