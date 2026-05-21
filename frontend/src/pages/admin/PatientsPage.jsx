@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { patientService } from "../../services/patient.service.js";
 import { Search, Plus, X } from "lucide-react";
+import api from "../../services/api.js";
 
 const PatientsPage = () => {
   const queryClient = useQueryClient();
@@ -14,11 +15,28 @@ const PatientsPage = () => {
     queryFn: () => patientService.getAll({ search }),
   });
 
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ["pending-line"],
+    queryFn: () =>
+      api.get("/webhook/pending").then((response) => response.data),
+  });
+
   const createMutation = useMutation({
     mutationFn: patientService.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       setShowForm(false);
+    },
+  });
+
+  const linkMutation = useMutation({
+    mutationFn: ({ patientId, lineUserId }) =>
+      api
+        .post("/webhook/link", { patientId, lineUserId })
+        .then((response) => response.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-line"] });
     },
   });
 
@@ -34,7 +52,7 @@ const PatientsPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">ลูกค้า</h1>
-          <p className="text-gray-500m text-sm mt-1">
+          <p className="text-gray-500 text-sm mt-1">
             ทั้งหมด {patients.length} คน
           </p>
         </div>
@@ -46,6 +64,57 @@ const PatientsPage = () => {
           เพิ่มลูกค้า
         </button>
       </div>
+
+      {pendingUsers.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h2 className="font-semibold text-yellow-800 mb-3">
+            🔔 รอผูก LINE ({pendingUsers.length} คน)
+          </h2>
+          <div className="space-y-2">
+            {pendingUsers.map((user) => (
+              <div
+                key={user.id}
+                className="flex items-center justify-between bg-white rounded p-3"
+              >
+                <div className="flex items-center gap-3">
+                  {user.pictureUrl && (
+                    <img
+                      src={user.pictureUrl}
+                      className="w-8 h-8 rounded-full"
+                    />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium">
+                      {user.displayName || "ไม่มีชื่อ"}
+                    </p>
+                    <p className="text-xs text-gray-400">{user.lineUserId}</p>
+                  </div>
+                </div>
+
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      linkMutation.mutate({
+                        patientId: e.target.value,
+                        lineUserId: user.lineUserId,
+                      });
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="">เลือกลูกค้า</option>
+                  {patients.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.firstName} {p.lastName} ({p.phone})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="relative">
         <Search
