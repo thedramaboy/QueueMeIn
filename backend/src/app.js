@@ -36,7 +36,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/bookings", bookingRoutes);
-app.use("/webhook", webhookRoutes);
+app.use("/api/webhook", webhookRoutes);
 startReminderJob();
 
 const PORT = process.env.PORT || 5000;
