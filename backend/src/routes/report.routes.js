@@ -3,7 +3,7 @@ import {
   getSummary,
   getBookingsReport,
   getPatientsReport,
-} from "../controllers/report.controller";
+} from "../controllers/report.controller.js";
 import auth from "../middlewares/auth.middleware.js";
 import allowRoles from "../middlewares/role.middleware.js";
 
