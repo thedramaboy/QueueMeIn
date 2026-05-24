@@ -10,6 +10,7 @@ import BookingsPage from "./pages/admin/BookingsPage.jsx";
 import DoctorsPage from "./pages/admin/DoctorsPage.jsx";
 import BranchesPage from "./pages/admin/BranchesPage.jsx";
 import ReportsPage from "./pages/admin/ReportsPage.jsx";
+import SchedulesPage from "./pages/admin/SchedulesPage.jsx";
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuthStore();
@@ -61,6 +62,7 @@ const App = () => {
           <Route path="doctors" element={<DoctorsPage />} />
           <Route path="branches" element={<BranchesPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="schedules" element={<SchedulesPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

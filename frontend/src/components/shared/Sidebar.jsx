@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 
 const Sidebar = ({ collapsed, onToggle }) => {
@@ -56,6 +57,12 @@ const Sidebar = ({ collapsed, onToggle }) => {
       label: "รายงาน",
       path: "/reports",
       icon: ClipboardList,
+      roles: ["OWNER"],
+    },
+    {
+      label: "ตารางเวลา",
+      path: "/schedules",
+      icon: Clock,
       roles: ["OWNER"],
     },
   ];
