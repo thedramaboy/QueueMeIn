@@ -26,7 +26,7 @@ export const getSummary = async (req, res) => {
 
     const returningPatients = await prisma.booking.findMany({
       where: {
-        data: { gte: startDate, lte: endDate },
+        date: { gte: startDate, lte: endDate },
         status: { notIn: ["CANCELLED"] },
       },
       select: { patientId: true },
@@ -61,17 +61,15 @@ export const getSummary = async (req, res) => {
         count: booking._count.status,
       })),
       bookingsByBranch: bookingsByBranch.map((booking) => ({
-        branch: branchMap[branch.branchId] || "ไม่ทราบ",
-        count: branch._count.status,
+        branch: branchMap[booking.branchId] || "ไม่ทราบ",
+        count: booking._count.branchId,
       })),
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "ไม่สามารถดึงข้อมูลสรุปโดยรวมได้",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "ไม่สามารถดึงข้อมูลสรุปโดยรวมได้",
+      error: error.message,
+    });
   }
 };
 
@@ -108,12 +106,10 @@ export const getBookingsReport = async (req, res) => {
 
     res.json(bookings);
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "ไม่สามารถดึงข้อมูลสรุปการจองได้",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "ไม่สามารถดึงข้อมูลสรุปการจองได้",
+      error: error.message,
+    });
   }
 };
 
