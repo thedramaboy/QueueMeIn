@@ -104,9 +104,9 @@ const PatientsPage = () => {
                   defaultValue=""
                 >
                   <option value="">เลือกลูกค้า</option>
-                  {patients.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName} ({p.phone})
+                  {patients.map((patient) => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.firstName} {patient.lastName} ({patient.phone})
                     </option>
                   ))}
                 </select>

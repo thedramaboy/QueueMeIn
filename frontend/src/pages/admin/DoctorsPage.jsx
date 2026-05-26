@@ -265,7 +265,7 @@ const DoctorDetail = ({ doctor, onClose, onDelete }) => (
         <Row
           label="สาขา"
           value={
-            doctor.doctorBranches?.map((db) => db.branch.name).join(", ") || "-"
+            doctor.doctorBranches?.map((doctorBranch) => doctorBranch.branch.name).join(", ") || "-"
           }
         />
         <Row

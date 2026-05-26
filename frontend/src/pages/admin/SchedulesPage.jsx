@@ -230,9 +230,9 @@ const ScheduleForm = ({
               required
             >
               <option value="">เลือกสาขา</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
                 </option>
               ))}
             </select>
@@ -248,9 +248,9 @@ const ScheduleForm = ({
               required
             >
               <option value="">เลือกหมอ</option>
-              {doctors.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
+              {doctors.map((doctor) => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.name}
                 </option>
               ))}
             </select>

@@ -149,7 +149,7 @@ export const getPatientsReport = async (req, res) => {
 
     res.json({
       newPatients,
-      returningPatients: returningBookings.map((b) => b.patient),
+      returningPatients: returningBookings.map((booking) => booking.patient),
     });
   } catch (error) {
     res.status(500).json({ message: "เกิดข้อผิดพลาด", error: error.message });

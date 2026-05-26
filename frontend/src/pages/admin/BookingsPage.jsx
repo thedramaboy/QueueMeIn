@@ -460,14 +460,14 @@ const BookingDetail = ({ booking, onClose, onStatusChange }) => {
         <div>
           <p className="text-sm font-medium text-gray-700 mb-2">เปลี่ยนสถานะ</p>
           <div className="grid grid-cols-2 gap-2">
-            {statuses.map((s) => (
+            {statuses.map((status) => (
               <button
-                key={s.value}
-                onClick={() => onStatusChange(s.value)}
-                disabled={booking.status === s.value}
+                key={status.value}
+                onClick={() => onStatusChange(status.value)}
+                disabled={booking.status === status.value}
                 className="border rounded px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {s.label}
+                {status.label}
               </button>
             ))}
           </div>
