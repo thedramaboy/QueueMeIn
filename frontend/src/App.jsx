@@ -11,6 +11,7 @@ import DoctorsPage from "./pages/admin/DoctorsPage.jsx";
 import BranchesPage from "./pages/admin/BranchesPage.jsx";
 import ReportsPage from "./pages/admin/ReportsPage.jsx";
 import SchedulesPage from "./pages/admin/SchedulesPage.jsx";
+import ServicesPage from "./pages/admin/ServicesPage.jsx";
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuthStore();
@@ -63,6 +64,7 @@ const App = () => {
           <Route path="branches" element={<BranchesPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="schedules" element={<SchedulesPage />} />
+          <Route path="services" element={<ServicesPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

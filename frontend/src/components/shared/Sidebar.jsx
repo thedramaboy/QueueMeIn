@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Syringe,
 } from "lucide-react";
 
 const Sidebar = ({ collapsed, onToggle }) => {
@@ -63,6 +64,12 @@ const Sidebar = ({ collapsed, onToggle }) => {
       label: "ตารางเวลา",
       path: "/schedules",
       icon: Clock,
+      roles: ["OWNER"],
+    },
+    {
+      label: "หัตถการ",
+      path: "services",
+      icon: Syringe,
       roles: ["OWNER"],
     },
   ];
