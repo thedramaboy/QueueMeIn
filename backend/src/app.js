@@ -12,10 +12,12 @@ import bookingRoutes from "./routes/booking.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
+import { httpLogger } from "./middlewares/httpLogger.middleware.js";
 
 dotenv.config();
 
 const app = express();
+app.use(httpLogger);
 
 app.use(
   cors({

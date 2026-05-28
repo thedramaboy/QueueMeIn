@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../utils/prisma.js";
+import logger from "../utils/logger.js";
 
 export const login = async (req, res) => {
   try {
@@ -14,6 +15,7 @@ export const login = async (req, res) => {
     });
 
     if (!user) {
+      logger.warn("Login failed - user or password is invalid", { email });
       return res.status(401).json({
         message: "Email or password is invalid.",
       });
