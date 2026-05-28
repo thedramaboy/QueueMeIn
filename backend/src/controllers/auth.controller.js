@@ -15,14 +15,16 @@ export const login = async (req, res) => {
     });
 
     if (!user) {
-      logger.warn("Login failed - user not found", { email });
+      logger.warn("Login failed - user not found", { requestEmail: email });
       return res.status(401).json({
         message: "Email or password is invalid.",
       });
     }
 
     if (!user.isActive) {
-      logger.warn("Login failed - account is inactive", { email });
+      logger.warn("Login failed - account is inactive", {
+        requestEmail: email,
+      });
       return res.status(401).json({
         message: "This account is not active.",
       });
@@ -30,7 +32,7 @@ export const login = async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      logger.warn("Login failed - wrong password", { email });
+      logger.warn("Login failed - wrong password", { requestEmail: email });
       return res.status(401).json({
         message: "Email or password is invalid.",
       });
@@ -47,7 +49,11 @@ export const login = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN },
     );
 
-    logger.info("Login success", { userId: user.id, email, role: user.role });
+    logger.info("Login success", {
+      userId: user.id,
+      requestEmail: email,
+      role: user.role,
+    });
 
     const { password: _, ...userWithoutPassword } = user;
     res.json({
@@ -56,7 +62,7 @@ export const login = async (req, res) => {
       user: userWithoutPassword,
     });
   } catch (error) {
-    logger.error("Login error", { error: error.message });
+    logger.error("Login error", { error: error.message, requestEmail: email });
     res.status(500).json({
       message: "Something occurred can't login",
       error: error.message,
@@ -71,12 +77,17 @@ export const getMe = async (req, res) => {
       include: { branch: true },
     });
 
-    logger.info("Get me success", { userId: user.id, email: user.email });
+    logger.info("Get me success", {
+      userId: user.id,
+      requestEmail: user.email,
+    });
 
     const { password: _, ...userWithoutPassword } = user;
     res.json(userWithoutPassword);
   } catch (error) {
-    logger.error("Get me error", { error: error.message });
+    logger.error("Get me error", {
+      error: error.message,
+    });
     res.status(500).json({
       message: "Somthing occurred can't get user",
       error: error.message,
