@@ -4,6 +4,7 @@ import {
   calculateEndTime,
   isSlotAvailable,
 } from "../utils/booking.helper.js";
+import logger from "../utils/logger.js";
 
 export const getBookings = async (req, res) => {
   try {
@@ -37,8 +38,19 @@ export const getBookings = async (req, res) => {
       orderBy: [{ date: "desc" }, { startTime: "asc" }],
     });
 
+    logger.info("Get booking success", {
+      count: bookings.length,
+      date: date || null,
+      branchId: branchId || null,
+      requestedBy: req.user.id,
+    });
+
     res.json(bookings);
   } catch (error) {
+    logger.error("Get bookings error", {
+      error: error.message,
+      requestedBy: req.user.id,
+    });
     res.status(500).json({
       message: "ไม่สามารถดึงข้อมูลการจองทั้งหมดได้",
       error: error.message,
@@ -70,11 +82,20 @@ export const getBooking = async (req, res) => {
     });
 
     if (!booking) {
+      logger.warn("Get booking failed - not found", { bookingId: id });
       return res.status(404).json({ message: "ไม่พบการจอง" });
     }
 
+    logger.info("Get booking success", {
+      bookingId: id,
+      requestedBy: req.user.id,
+    });
     res.json(booking);
   } catch (error) {
+    logger.error("Get booking error", {
+      bookingId: req.params.id,
+      error: error.message,
+    });
     res
       .status(500)
       .json({ message: "ไม่สามารถดึงข้อมูลการจองได้", error: error.message });
@@ -98,6 +119,7 @@ export const createBooking = async (req, res) => {
       where: { id: Number(serviceId) },
     });
     if (!service) {
+      logger.warn("Create booking failed - service not found", { serviceId });
       return res.status(404).json({ message: "ไม่พบบริการที่ต้องการเลือก" });
     }
 
@@ -111,6 +133,12 @@ export const createBooking = async (req, res) => {
       endTime,
     });
     if (!available) {
+      logger.warn("Create booking failed - slot not available", {
+        doctorId,
+        branchId,
+        date,
+        startTime,
+      });
       return res.status(400).json({
         message: "เวลานี้มีการจองในระบบแล้ว กรุณาเลือกเวลาอื่น",
       });
@@ -164,11 +192,25 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    logger.info("Create booking success", {
+      bookingId: booking.id,
+      patientId,
+      doctorId,
+      branchId,
+      date,
+      startTime,
+      requestedBy: req.user.id,
+    });
+
     res.status(201).json({
       message: "สร้างการจองสำเร็จ",
       booking,
     });
   } catch (error) {
+    logger.error("Create booking error", {
+      error: error.message,
+      requestedBy: req.user.id,
+    });
     res
       .status(500)
       .json({ message: "ไม่สามารถสร้างการจองได้", error: error.message });
@@ -184,6 +226,9 @@ export const updateBookingStatus = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
+      logger.warn("Update booking status failed - not found", {
+        bookingId: id,
+      });
       return res.status(404).json({ message: "ไม่พบการจองที่ต้องการอัปเดต" });
     }
 
@@ -198,11 +243,21 @@ export const updateBookingStatus = async (req, res) => {
       },
     });
 
+    logger.info("Update booking status success", {
+      bookingId: id,
+      oldStatus: existing.status,
+      newStatus: status,
+      requestedBy: req.user.id,
+    });
     res.json({
       message: "อัปเดตสถานะการจองสำเร็จ",
       booking,
     });
   } catch (error) {
+    logger.error("Update booking status error", {
+      bookingId: req.params.id,
+      error: error.message,
+    });
     res
       .status(500)
       .json({ message: "ไม่สามารถอัปเดตการจองได้", error: error.message });
@@ -219,6 +274,7 @@ export const rescheduleBooking = async (req, res) => {
       include: { service: true },
     });
     if (!existing) {
+      logger.warn("Reschedule failed - booking not found", { bookingId: id });
       return res
         .status(404)
         .json({ message: "ไม่พบการจองที่ต้องการ Reschedule" });
@@ -235,6 +291,11 @@ export const rescheduleBooking = async (req, res) => {
       excludeBookingId: id,
     });
     if (!available) {
+      logger.warn("Reschedule failed - slot not available", {
+        bookingId: id,
+        date,
+        startTime,
+      });
       return res.status(400).json({
         message: "ช่วงเวลานี้มีการจองแล้วในระบบ กรุณาเลือกเวลาอื่น",
       });
@@ -285,11 +346,24 @@ export const rescheduleBooking = async (req, res) => {
       },
     });
 
+    logger.info("Reschedule success", {
+      oldBookingId: id,
+      newBookingId: newBooking.id,
+      newBookingNo: newBooking.bookingNo,
+      date,
+      startTime,
+      requestedBy: req.user.id,
+    });
+
     res.status(201).json({
       message: "เลื่อนนัดสำเร็จ",
       booking: newBooking,
     });
   } catch (error) {
+    logger.error("Reschedule error", {
+      bookingId: req.params.id,
+      error: error.message,
+    });
     res
       .status(500)
       .json({ message: "ไม่สามารถ Reschedule ได้", error: error.message });
