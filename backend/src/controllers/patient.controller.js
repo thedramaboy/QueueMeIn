@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import logger from "../utils/logger.js";
 
 export const getPatients = async (req, res) => {
   try {
@@ -22,8 +23,17 @@ export const getPatients = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
+    logger.info("Get patients success", {
+      count: patients.length,
+      requestedBy: req.user.id,
+    });
+
     res.json(patients);
   } catch (error) {
+    logger.error("Get patients error", {
+      error: error.message,
+      requestedBy: req.user.id,
+    });
     res.status(500).json({
       message: "ไม่สามารถดึงข้อมูลลูกค้าทั้งหมดได้",
       error: error.message,
@@ -50,11 +60,22 @@ export const getPatient = async (req, res) => {
     });
 
     if (!patient) {
+      logger.warn("Get specific patient failed - not found", {
+        patientId: id,
+      });
       return res.status(404).json({ message: "ไม่พบข้อมูลลูกค้า" });
     }
 
+    logger.info("Get patient success", {
+      patientId: id,
+      requestedBy: req.user.id,
+    });
     res.json(patient);
   } catch (error) {
+    logger.error("Get patient error", {
+      patientId: req.params.id,
+      error: error.message,
+    });
     res
       .status(500)
       .json({ message: "ไม่สามารถค้นหาลูกค้ารายนี้ได้", error: error.message });
@@ -79,6 +100,7 @@ export const createPatient = async (req, res) => {
       where: { phone },
     });
     if (existingPhone) {
+      logger.warn("Create patient failed - phone exists", { phone });
       return res.status(400).json({ message: "เบอร์โทรนี้มีในระบบแล้ว" });
     }
 
@@ -86,6 +108,7 @@ export const createPatient = async (req, res) => {
       where: { opdNumber },
     });
     if (existingOpd) {
+      logger.warn("Create patient failed - OPD exists", { opdNumber });
       return res.status(400).json({ message: "เลข OPD นี้มีในระบบแล้ว" });
     }
 
@@ -103,11 +126,19 @@ export const createPatient = async (req, res) => {
       },
     });
 
+    logger.info("Create patient success", {
+      patientId: patient.id,
+      opdNumber: patient.opdNumber,
+      nickname: patient.nickname,
+      requestedBy: req.user.id,
+    });
+
     res.status(201).json({
       message: "สร้างข้อมูลลูกค้าสำเร็จ",
       patient,
     });
   } catch (error) {
+    logger.error("Create patient error", { error: error.message });
     res
       .status(500)
       .json({ message: "ไม่สามารถสร้างข้อมูลลูกค้าได้", error: error.message });
@@ -132,6 +163,7 @@ export const updatePatient = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
+      logger.warn("Update patient failed - notfound", { patientId: id });
       return res
         .status(404)
         .json({ message: "ไม่พบข้อมูลลูกค้าที่ต้องการแก้ไข" });
@@ -150,11 +182,20 @@ export const updatePatient = async (req, res) => {
       },
     });
 
+    logger.info("Update patient success", {
+      patientId: id,
+      requestedBy: req.user.id,
+    });
+
     res.json({
       message: "แก้ไขข้อมูลลูกค้าสำเร็จ",
       patient,
     });
   } catch (error) {
+    logger.error("Update patient error", {
+      patientId: req.params.id,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถอัปเดตข้อมูลลูกค้าได้",
       error: error.message,
@@ -170,6 +211,7 @@ export const deletePatient = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
+      logger.warn("Delete patient failed - not found", { patientId: id });
       return res.status(404).json({ message: "ไม่พบข้อมูลลูกค้าที่ต้องการลบ" });
     }
 
@@ -177,8 +219,16 @@ export const deletePatient = async (req, res) => {
       where: { id: Number(id) },
     });
 
+    logger.info("Delete patient success", {
+      patientId: id,
+      requestedBy: req.user.id,
+    });
     res.json({ message: "ลบข้อมูลลูกค้าเรียบร้อยแล้ว" });
   } catch (error) {
+    logger.error("Delete patient error", {
+      patientId: req.params.id,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถลบข้อมูลลูกค้าได้",
       error: error.message,
