@@ -38,7 +38,7 @@ export const getBookings = async (req, res) => {
       orderBy: [{ date: "desc" }, { startTime: "asc" }],
     });
 
-    logger.info("Get booking success", {
+    logger.info("Get bookings success", {
       count: bookings.length,
       date: date || null,
       branchId: branchId || null,
