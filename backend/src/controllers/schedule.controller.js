@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import logger from "../utils/logger.js";
 
 export const getSchedules = async (req, res) => {
   try {
@@ -18,8 +19,16 @@ export const getSchedules = async (req, res) => {
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
 
+    logger.info("Get schedules success", {
+      count: schedules.length,
+      branchId: branchId || null,
+      doctorId: doctorId || null,
+      dayOfWeek: dayOfWeek || null,
+      requestedBy: req.user.id,
+    });
     res.json(schedules);
   } catch (error) {
+    llogger.error("Get schedules error", { error: error.message });
     res
       .status(500)
       .json({ message: "ไม่สามารถดึงตารางทั้งหมดได้", error: error.message });
@@ -39,13 +48,20 @@ export const getSchedule = async (req, res) => {
     });
 
     if (!schedule) {
-      return res
-        .status(404)
-        .json({ message: "ไม่พบตารางเวลาที่ต้องการ", error: error.message });
+      logger.warn("Get schedule failed - not found", { scheduleId: id });
+      return res.status(404).json({ message: "ไม่พบตารางเวลาที่ต้องการ" });
     }
 
+    logger.info("Get schedule success", {
+      scheduleId: id,
+      requestedBy: req.user.id,
+    });
     res.json(schedule);
   } catch (error) {
+    logger.error("Get schedule error", {
+      scheduleId: req.params.id,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถดึงตารางเวลาที่ต้องการได้, error: error.message",
     });
@@ -65,6 +81,10 @@ export const createSchedule = async (req, res) => {
       },
     });
     if (!doctorBranch) {
+      logger.warn("Create schedule failed - doctor not in branch", {
+        doctorId,
+        branchId,
+      });
       return res.status(400).json({
         message: "ไม่มีตารางเวลาของหมอที่เลือก",
       });
@@ -80,6 +100,11 @@ export const createSchedule = async (req, res) => {
       },
     });
     if (existing) {
+      logger.warn("Create schedule failed - already exists", {
+        doctorId,
+        branchId,
+        dayOfWeek,
+      });
       return res.status(400).json({
         message: "มีตารางเวลานี้อยู่ในระบบแล้ว",
       });
@@ -99,11 +124,25 @@ export const createSchedule = async (req, res) => {
       },
     });
 
+    logger.info("Create schedule success", {
+      scheduleId: schedule.id,
+      doctorId,
+      branchId,
+      dayOfWeek,
+      startTime,
+      endTime,
+      requestedBy: req.user.id,
+    });
+
     res.status(201).json({
       message: "สร้างตารางเวลาเรียบร้อยแล้ว",
       schedule,
     });
   } catch (error) {
+    logger.error("Create schedule error", {
+      error: error.message,
+      requestedBy: req.user.id,
+    });
     res
       .status(500)
       .json({ message: "ไม่สามารถสร้างตารางเวลาได้", error: error.message });
@@ -118,7 +157,9 @@ export const updateSchedule = async (req, res) => {
     const existing = await prisma.schedule.findUnique({
       where: { id: Number(id) },
     });
+
     if (!existing) {
+      logger.warn("Update schedule failed - not found", { scheduleId: id });
       return res.status(404).json({ message: "ไม่พบตารางเวลาที่ต้องการแก้ไข" });
     }
 
@@ -131,11 +172,20 @@ export const updateSchedule = async (req, res) => {
       },
     });
 
+    logger.info("Update schedule success", {
+      scheduleId: id,
+      requestedBy: req.user.id,
+    });
+
     res.json({
       message: "แก้ไขตารางเวลาเรียบร้อยแล้ว",
       schedule,
     });
   } catch (error) {
+    logger.error("Update schedule error", {
+      scheduleId: req.params.id,
+      error: error.message,
+    });
     res
       .status(500)
       .json({ message: "ไม่สามารถแก้ไขตารางเวลาได้", error: error.message });
@@ -150,7 +200,8 @@ export const deleteSchedule = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
-      return res.status(404).json({ meesage: "ไม่พบตารางเวลาที่ต้องการลบ" });
+      logger.warn("Delete schedule failed - not found", { scheduleId: id });
+      return res.status(404).json({ message: "ไม่พบตารางเวลาที่ต้องการลบ" });
     }
 
     await prisma.schedule.update({
@@ -158,8 +209,17 @@ export const deleteSchedule = async (req, res) => {
       data: { isActive: false },
     });
 
+    logger.info("Delete schedule success", {
+      scheduleId: id,
+      requestedBy: req.user.id,
+    });
+
     res.json({ message: "ลบตารางเวลาเรียบร้อยแล้ว" });
   } catch (error) {
+    logger.error("Delete schedule error", {
+      scheduleId: req.params.id,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถลบตารางเวลาได้",
       error: error.message,
