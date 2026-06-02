@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import logger from "../utils/logger.js";
 
 export const getSummary = async (req, res) => {
   try {
@@ -50,6 +51,15 @@ export const getSummary = async (req, res) => {
       branches.map((branch) => [branch.id, branch.name]),
     );
 
+    logger.info("Get summary success", {
+      month: currentMonth,
+      year: currentYear,
+      totalBookings,
+      newPatients,
+      returningPatients: returningPatients.length,
+      requestedBy: req.user.id,
+    });
+
     res.json({
       month: currentMonth,
       year: currentYear,
@@ -66,6 +76,11 @@ export const getSummary = async (req, res) => {
       })),
     });
   } catch (error) {
+    logger.error("Get summary error", {
+      month: req.query.month,
+      year: req.query.year,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถดึงข้อมูลสรุปโดยรวมได้",
       error: error.message,
@@ -104,8 +119,21 @@ export const getBookingsReport = async (req, res) => {
       orderBy: [{ date: "asc" }, { startTime: "asc" }],
     });
 
+    logger.info("Get bookings report success", {
+      month: currentMonth,
+      year: currentYear,
+      count: bookings.length,
+      branchId: branchId || null,
+      requestedBy: req.user.id,
+    });
+
     res.json(bookings);
   } catch (error) {
+    logger.error("Get bookings report error", {
+      month: req.query.month,
+      year: req.query.year,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถดึงข้อมูลสรุปการจองได้",
       error: error.message,
@@ -147,11 +175,24 @@ export const getPatientsReport = async (req, res) => {
       distinct: ["patientId"],
     });
 
+    logger.info("Get patients report success", {
+      month: currentMonth,
+      year: currentYear,
+      newPatients: newPatients.length,
+      returningPatients: returningBookings.length,
+      requestedBy: req.user.id,
+    });
+
     res.json({
       newPatients,
       returningPatients: returningBookings.map((booking) => booking.patient),
     });
   } catch (error) {
+    logger.error("Get patients report error", {
+      month: req.query.month,
+      year: req.query.year,
+      error: error.message,
+    });
     res.status(500).json({ message: "เกิดข้อผิดพลาด", error: error.message });
   }
 };
