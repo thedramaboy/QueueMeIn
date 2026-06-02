@@ -1,5 +1,6 @@
 import prisma from "../utils/prisma.js";
 import axios from "axios";
+import logger from "../utils/logger.js";
 
 const getLineProfile = async (lineUserId) => {
   try {
@@ -13,6 +14,7 @@ const getLineProfile = async (lineUserId) => {
     );
     return res.data;
   } catch {
+    logger.warn("Get LINE profile failed", { lineUserId });
     return null;
   }
 };
@@ -28,12 +30,16 @@ export const handleWebhook = async (req, res) => {
     if (!lineUserId) continue;
 
     if (event.type === "follow") {
-      console.log("New follower:", lineUserId);
-
       const existingPatient = await prisma.patient.findFirst({
         where: { lineUserId },
       });
-      if (existingPatient) continue;
+      if (existingPatient) {
+        logger.info("LINE follow - already linked patient", {
+          lineUserId,
+          patientId: existingPatient.id,
+        });
+        continue;
+      }
 
       const profile = await getLineProfile(lineUserId);
 
@@ -50,7 +56,10 @@ export const handleWebhook = async (req, res) => {
         },
       });
 
-      console.log("Saved pending LINE user:", lineUserId);
+      logger.info("LINE follow - saved pending user", {
+        lineUserId,
+        displayName: profile?.displayName,
+      });
     }
 
     if (event.type === "unfollow") {
@@ -62,11 +71,9 @@ export const handleWebhook = async (req, res) => {
         where: { lineUserId },
         data: { lineUserId: null },
       });
-    }
 
-    // if (event.type === "message") {
-    //   console.log("Message from:", lineUserId, event.message?.text);
-    // }
+      logger.info("LINE unfollow - cleared user", { lineUserId });
+    }
   }
 };
 
@@ -75,8 +82,15 @@ export const getPendingLineUsers = async (req, res) => {
     const pending = await prisma.pendingLineUser.findMany({
       orderBy: { createdAt: "desc" },
     });
+
+    logger.info("Get pending LINE users success", {
+      count: pending.length,
+      requestedBy: req.user.id,
+    });
+
     res.json(pending);
   } catch (error) {
+    logger.error("Get pending LINE users error", { error: error.message });
     res.status(500).json({
       message: "ไม่สามารถดึงข้อมูล LINE user ได้",
       error: error.message,
@@ -92,6 +106,10 @@ export const linkLineUser = async (req, res) => {
       where: { id: Number(patientId) },
     });
     if (!patient) {
+      logger.warn("Link LINE failed - patient not found", {
+        patientId,
+        lineUserId,
+      });
       return res.status(404).json({ message: "ไม่พบข้อมูลลูกค้า" });
     }
 
@@ -104,8 +122,19 @@ export const linkLineUser = async (req, res) => {
       where: { lineUserId },
     });
 
+    logger.info("Link LINE success", {
+      patientId,
+      lineUserId,
+      requestedBy: req.user.id,
+    });
+
     res.json({ message: "ผูก Line สำเร็จ" });
   } catch (error) {
+    logger.error("Link LINE error", {
+      patientId: req.body.patientId,
+      lineUserId: req.body.lineUserId,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถเชื่อม LINE ID กับ User นี้ได้",
       error: error.message,
