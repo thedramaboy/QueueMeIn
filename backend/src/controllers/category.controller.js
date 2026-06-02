@@ -1,4 +1,5 @@
 import prisma from "../utils/prisma.js";
+import logger from "../utils/logger.js";
 
 export const getCategories = async (req, res) => {
   try {
@@ -12,8 +13,14 @@ export const getCategories = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
+    logger.info("Get categories success", {
+      count: categories.length,
+      requestedBy: req.user.id,
+    });
+
     res.json(categories);
   } catch (error) {
+    logger.error("Get categories error", { error: error.message });
     res.status(500).json({
       message: "ไม่สามารถดึงข้อมูลประเภทการบริการได้",
       error: error.message,
@@ -29,6 +36,7 @@ export const createCategory = async (req, res) => {
       where: { name },
     });
     if (existing) {
+      logger.warn("Create category failed - already exists", { name });
       return res
         .status(400)
         .json({ message: "ชื่อ Category นี้มีอยู่ในระบบแล้ว" });
@@ -38,10 +46,19 @@ export const createCategory = async (req, res) => {
       data: { name },
     });
 
+    logger.info("Create category success", {
+      categoryId: category.id,
+      name: category.name,
+      requestedBy: req.user.id,
+    });
     res.status(201).json({
       message: "สร้าง Category เรียบร้อยแล้ว",
     });
   } catch (error) {
+    logger.error("Create category error", {
+      error: error.message,
+      requestedBy: req.user.id,
+    });
     res.status(500).json({
       message: "ไม่สามารถสร้างประเภทการบริการได้",
       error: error.message,
@@ -58,6 +75,7 @@ export const updateCategory = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
+      logger.warn("Update category failed - not found", { categoryId: id });
       return res.status(404).json({ message: "ไม่พบประเภทการบริการนี้ในระบบ" });
     }
 
@@ -66,11 +84,21 @@ export const updateCategory = async (req, res) => {
       data: { name },
     });
 
+    logger.info("Update category success", {
+      categoryId: id,
+      name,
+      requestedBy: req.user.id,
+    });
+
     res.json({
       message: "แก้ไขประเภทการบริการสำเร็จ",
       category,
     });
   } catch (error) {
+    logger.error("Update category error", {
+      categoryId: req.params.id,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถแก้ไขประเภทการบริการนี้ได้",
       error: error.message,
@@ -86,6 +114,7 @@ export const deleteCategory = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
+      logger.warn("Delete category failed - not found", { categoryId: id });
       return res.status(404).json({ message: "ไม่พบ Category นี้ในระบบ" });
     }
 
@@ -94,11 +123,20 @@ export const deleteCategory = async (req, res) => {
       data: { isActive: false },
     });
 
+    logger.info("Delete category success", {
+      categoryId: id,
+      requestedBy: req.user.id,
+    });
+
     res.json({ message: "ลบ Category เรียบร้อยแล้ว" });
   } catch (error) {
+    logger.error("Delete category error", {
+      categoryId: req.params.id,
+      error: error.message,
+    });
     res.status(500).json({
       message: "ไม่สามารถลบ Category นี้ได้",
-      error: message.error,
+      error: error.message,
     });
   }
 };
