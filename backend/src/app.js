@@ -13,11 +13,11 @@ import reportRoutes from "./routes/report.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
 import { httpLogger } from "./middlewares/httpLogger.middleware.js";
+import logger from "./utils/logger.js";
 
 dotenv.config();
 
 const app = express();
-app.use(httpLogger);
 
 app.use(
   cors({
@@ -26,6 +26,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(httpLogger);
 
 app.get("/", (req, res) => {
   res.json({ message: "Clinic Booking API" });
@@ -41,12 +42,37 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/webhook", webhookRoutes);
+
+app.use((req, res) => {
+  logger.warn("Route not found", {
+    method: req.method,
+    url: req.url,
+  });
+  res.status(404).json({
+    message: `Cannot ${req.method} ${req.url}`,
+  });
+});
+
+app.use((err, req, res, next) => {
+  logger.error("Unexpected error", {
+    method: req.method,
+    url: req.url,
+    error: err.message,
+    stack: err.stack,
+  });
+  res.status(500).json({
+    message: " เกิดข้อผิดพลาดที่ไม่คาดคิด กรุณาลองใหม่อีกครั้ง",
+  });
+});
+
 startReminderJob();
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`, {
+    port: PORT,
+  });
 });
 
 export default app;
