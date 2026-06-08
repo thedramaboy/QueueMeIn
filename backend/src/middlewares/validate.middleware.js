@@ -1,28 +1,31 @@
 import logger from "../utils/logger.js";
 
 export const validate = (schema) => {
-    return (req, res, next) => {
-        const result = schema.safeParse(req.body)
+  return (req, res, next) => {
+    const body   = req.body || {}
+    const result = schema.safeParse(body)
 
-        if (!result.success) {
-            const errors = result.error.errors.map((error) => ({
-                field: error.path.join('.'),
-                message: error.message
-            }))
-        }
+    if (!result.success) {
+      const issues = result.error.issues || result.error.errors || []
 
-        logger.warn("Validation failed", {
-            method: req.method,
-            url: req.url,
-            errors
-        })
+      const errors = issues.map((issue) => ({
+        field:   issue.path.join('.'),
+        message: issue.message
+      }))
 
-        return res.status(400).json({
-            message: "ข้อมูลไม่ถูกต้อง",
-            errors
-        })
+      logger.warn("Validation failed", {
+        method: req.method,
+        url:    req.url,
+        errors
+      })
 
-        req.body = result.data
-        next()
+      return res.status(400).json({
+        message: "ข้อมูลไม่ถูกต้อง",
+        errors
+      })
     }
+
+    req.body = result.data
+    next()
+  }
 }
