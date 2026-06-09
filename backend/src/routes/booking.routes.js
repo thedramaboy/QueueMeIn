@@ -9,7 +9,7 @@ import {
 import auth from "../middlewares/auth.middleware.js";
 import allowRoles from "../middlewares/role.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
-import { createBookingSchema, updateBookingStatusSchema, rescheduleBookingSchema } from "../utils/schemas.js";
+import { createBookingSchema, updateBookingStatusSchema, rescheduleBookingSchema } from "../schemas/booking.schema.js";
 
 const router = Router();
 

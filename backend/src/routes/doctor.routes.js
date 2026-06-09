@@ -8,12 +8,14 @@ import {
 } from "../controllers/doctor.controller.js";
 import auth from "../middlewares/auth.middleware.js";
 import allowRoles from "../middlewares/role.middleware.js";
+import { validate } from "../middlewares/validate.middleware.js";
+import { createDoctorSchema } from "../schemas/doctor.schema.js";
 
 const router = Router();
 
 router.get("/", auth, getDoctors);
 router.get("/:id", auth, getDoctor);
-router.post("/", auth, allowRoles("OWNER"), createDoctor);
+router.post("/", auth, allowRoles("OWNER"),validate(createDoctorSchema), createDoctor);
 router.put("/:id", auth, allowRoles("OWNER"), updateDoctor);
 router.delete("/:id", auth, allowRoles("OWNER"), deleteDoctor);
 
