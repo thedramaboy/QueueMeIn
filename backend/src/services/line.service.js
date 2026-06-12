@@ -28,8 +28,8 @@ export const buildReminderMessage = (booking, type) => {
   const { patient, service, doctor, branch, startTime, date } = booking;
 
   const name = patient.nickname || patient.firstName;
-  const dateStr = new Date(date).toLocaleDateString("th-TH", {
-    year: "buddhist",
+  const dateStr = new Date(date).toLocaleDateString("th-TH-u-ca-buddhist", {
+    year: "numeric",
     month: "long",
     day: "numeric",
   });
