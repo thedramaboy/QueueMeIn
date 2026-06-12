@@ -28,7 +28,7 @@ export const getSchedules = async (req, res) => {
     });
     res.json(schedules);
   } catch (error) {
-    llogger.error("Get schedules error", { error: error.message });
+    logger.error("Get schedules error", { error: error.message });
     res
       .status(500)
       .json({ message: "ไม่สามารถดึงตารางทั้งหมดได้", error: error.message });
@@ -99,15 +99,19 @@ export const createSchedule = async (req, res) => {
         },
       },
     });
+
     if (existing) {
-      logger.warn("Create schedule failed - already exists", {
-        doctorId,
-        branchId,
-        dayOfWeek,
+      if (existing.isActive) {
+        logger.warn("Create schedule failed - already exists", { doctorId, branchId, dayOfWeek });
+        return res.status(400).json({ message: "มีตารางเวลานี้อยู่ในระบบแล้ว" });
+      }
+      const schedule = await prisma.schedule.update({
+        where: { id: existing.id },
+        data: { isActive: true, startTime, endTime },
+        include: { branch: true, doctor: true },
       });
-      return res.status(400).json({
-        message: "มีตารางเวลานี้อยู่ในระบบแล้ว",
-      });
+      logger.info("Reactivated schedule", { scheduleId: schedule.id, doctorId, branchId, dayOfWeek, requestedBy: req.user.id });
+      return res.status(201).json({ message: "สร้างตารางเวลาเรียบร้อยแล้ว", schedule });
     }
 
     const schedule = await prisma.schedule.create({
