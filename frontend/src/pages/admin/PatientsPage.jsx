@@ -3,6 +3,34 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { patientService } from "../../services/patient.service.js";
 import { Search, Plus, X } from "lucide-react";
 import api from "../../services/api.js";
+import { formatPhone } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DataGrid } from "@mui/x-data-grid";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import PageHeader from "@/components/shared/PageHeader";
+import StatusBadge from "@/components/shared/StatusBadge";
+import DetailRow from "@/components/shared/DetailRow";
+import EmptyState from "@/components/shared/EmptyState";
+import TableSkeleton from "@/components/shared/TableSkeleton";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { datagridSx } from "@/lib/datagrid";
 
 const PatientsPage = () => {
   const queryClient = useQueryClient();
@@ -15,10 +43,9 @@ const PatientsPage = () => {
     queryFn: () => patientService.getAll({ search }),
   });
 
-  const { data: pendingUsers = [] } = useQuery({
+  const { data: pendingUsers = [], isError: pendingError } = useQuery({
     queryKey: ["pending-line"],
-    queryFn: () =>
-      api.get("/webhook/pending").then((response) => response.data),
+    queryFn: () => api.get("/webhook/pending").then((r) => r.data),
   });
 
   const createMutation = useMutation({
@@ -31,9 +58,7 @@ const PatientsPage = () => {
 
   const linkMutation = useMutation({
     mutationFn: ({ patientId, lineUserId }) =>
-      api
-        .post("/webhook/link", { patientId, lineUserId })
-        .then((response) => response.data),
+      api.post("/webhook/link", { patientId, lineUserId }).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["pending-line"] });
@@ -47,168 +72,208 @@ const PatientsPage = () => {
     },
   });
 
+  const unlinkMutation = useMutation({
+    mutationFn: (patientId) =>
+      api.delete(`/webhook/link/${patientId}`).then((r) => r.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      setSelected(null);
+    },
+  });
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">ลูกค้า</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            ทั้งหมด {patients.length} คน
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        >
-          <Plus size={18} />
-          เพิ่มลูกค้า
-        </button>
-      </div>
+      <PageHeader
+        title="ลูกค้า"
+        subtitle={`ทั้งหมด ${patients.length} คน`}
+        action={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            เพิ่มลูกค้า
+          </Button>
+        }
+      />
+
+      {pendingError && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="p-3 text-sm text-destructive">
+            ไม่สามารถโหลดข้อมูลรอผูก LINE ได้ กรุณาลองรีเฟรชหน้า
+          </CardContent>
+        </Card>
+      )}
 
       {pendingUsers.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h2 className="font-semibold text-yellow-800 mb-3">
-            🔔 รอผูก LINE ({pendingUsers.length} คน)
-          </h2>
-          <div className="space-y-2">
-            {pendingUsers.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between bg-white rounded p-3"
-              >
-                <div className="flex items-center gap-3">
-                  {user.pictureUrl && (
-                    <img
-                      src={user.pictureUrl}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  )}
-                  <div>
-                    <p className="text-sm font-medium">
-                      {user.displayName || "ไม่มีชื่อ"}
-                    </p>
-                    <p className="text-xs text-gray-400">{user.lineUserId}</p>
-                  </div>
-                </div>
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-4">
+            <h2 className="font-semibold text-amber-800 mb-1">
+              รอผูก LINE ({pendingUsers.length} คน)
+            </h2>
+            <p className="text-xs text-amber-600 mb-3">
+              ผู้ใช้เหล่านี้ติดตาม LINE Bot ของคลินิกแล้ว —
+              เลือกลูกค้าเพื่อเชื่อมบัญชี
+            </p>
+            <div className="space-y-2">
+              {pendingUsers.map((user) => (
+                <Card key={user.id} className="bg-background">
+                  <CardContent className="flex items-center justify-between p-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={user.pictureUrl} />
+                        <AvatarFallback className="text-xs">
+                          {user.displayName?.charAt(0) ?? "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {user.displayName || "ไม่มีชื่อ"}
+                        </p>
+                      </div>
+                    </div>
 
-                <select
-                  className="border rounded px-2 py-1 text-sm"
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      linkMutation.mutate({
-                        patientId: e.target.value,
-                        lineUserId: user.lineUserId,
-                      });
-                    }
-                  }}
-                  defaultValue=""
-                >
-                  <option value="">เลือกลูกค้า</option>
-                  {patients.map((patient) => (
-                    <option key={patient.id} value={patient.id}>
-                      {patient.firstName} {patient.lastName} ({patient.phone})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-        </div>
+                    <Select
+                      onValueChange={(patientId) => {
+                        if (patientId) {
+                          linkMutation.mutate({
+                            patientId,
+                            lineUserId: user.lineUserId,
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="เลือกลูกค้า" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {patients.map((p) => (
+                          <SelectItem key={p.id} value={String(p.id)}>
+                            {p.firstName} {p.lastName} ({p.phone})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <div className="relative">
         <Search
-          size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          size={16}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
         />
-        <input
+        <Input
           type="text"
-          placeholder="ค้นหาชื่อ เบอร์โทร หรือเลข OPD"
+          placeholder="ค้นหาคนไข้, เบอร์โทร, HN…"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10 pr-9 rounded-full bg-muted border border-border focus-visible:ring-2 focus-visible:ring-ring"
         />
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-400">กำลังโหลด...</div>
-        ) : patients.length === 0 ? (
-          <div>ไม่พบข้อมูลลูกค้า</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-left text-gray-500">
-                <th className="px-6 py-3 font-medium">OPD</th>
-                <th className="px-6 py-3 font-medium">ชื่อ</th>
-                <th className="px-6 py-3 font-medium">เบอร์โทร</th>
-                <th className="px-6 py-3 font-medium">อายุ</th>
-                <th className="px-6 py-3 font-medium">ประเภท</th>
-                <th className="px-6 py-3 font-medium">แพ้ยา</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {patients.map((patient) => (
-                <tr
-                  key={patient.id}
-                  onClick={() => setSelected(patient)}
-                  className="hover:bg-gray-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 text-gray-500">
-                    {patient.opdNumber}
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-gray-800">
-                      {patient.firstName} {patient.lastName}
-                    </p>
-                    {patient.nickname && (
-                      <p className="text-gray-400 text-xs">
-                        ({patient.nickname})
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{patient.phone}</td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {patient.age || "-"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${patient.isNewPatient ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
-                    >
-                      {patient.isNewPatient ? "ใหม่" : "เก่า"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X size={14} />
+          </button>
         )}
       </div>
 
-      {showForm && (
-        <PatientForm
-          onClose={() => setShowForm(false)}
-          onSubmit={(data) => createMutation.mutate(data)}
-          isLoading={createMutation.isPending}
-          error={createMutation.error?.response?.data?.message}
-        />
-      )}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <TableSkeleton cols={6} />
+          ) : patients.length === 0 ? (
+            <EmptyState message="ไม่พบข้อมูลลูกค้า" />
+          ) : (
+            <DataGrid
+              rows={patients}
+              columns={[
+                { field: "opdNumber", headerName: "OPD", width: 100 },
+                {
+                  field: "fullName",
+                  headerName: "ชื่อ",
+                  flex: 1,
+                  renderCell: (params) => (
+                    <div className="flex flex-col justify-center py-1">
+                      <p className="font-medium text-sm leading-tight">
+                        {params.row.firstName} {params.row.lastName}
+                      </p>
+                      {params.row.nickname && (
+                        <p className="text-xs text-muted-foreground">
+                          ({params.row.nickname})
+                        </p>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  field: "phone",
+                  headerName: "เบอร์โทร",
+                  width: 140,
+                  valueGetter: (v) => formatPhone(v),
+                },
+                {
+                  field: "age",
+                  headerName: "อายุ",
+                  width: 70,
+                  valueGetter: (v) => v || "-",
+                },
+                {
+                  field: "isNewPatient",
+                  headerName: "ประเภท",
+                  width: 90,
+                  renderCell: (params) => (
+                    <StatusBadge
+                      status={params.row.isNewPatient ? "ACTIVE" : "INACTIVE"}
+                      label={params.row.isNewPatient ? "ใหม่" : "เก่า"}
+                    />
+                  ),
+                },
+                {
+                  field: "allergyHistory",
+                  headerName: "แพ้ยา",
+                  flex: 1,
+                  valueGetter: (v) => v || "-",
+                },
+              ]}
+              autoHeight
+              pageSizeOptions={[10, 25]}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 10 } },
+              }}
+              onRowClick={(params) => setSelected(params.row)}
+              sx={{ ...datagridSx, cursor: "pointer" }}
+            />
+          )}
+        </CardContent>
+      </Card>
 
-      {selected && (
-        <PatientDetail
-          patient={selected}
-          onClose={() => setSelected(null)}
-          onDelete={() => {
-            deleteMutation.mutate(selected.id);
-            setSelected(null);
-          }}
-        />
-      )}
+      <PatientForm
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSubmit={(data) => createMutation.mutate(data)}
+        isLoading={createMutation.isPending}
+        error={createMutation.error?.response?.data?.message}
+      />
+
+      <PatientDetail
+        patient={selected}
+        onClose={() => setSelected(null)}
+        onDelete={() => {
+          deleteMutation.mutate(selected.id);
+          setSelected(null);
+        }}
+        onUnlink={() => unlinkMutation.mutate(selected.id)}
+        unlinkLoading={unlinkMutation.isPending}
+      />
     </div>
   );
 };
 
-const PatientForm = ({ onClose, onSubmit, isLoading, error }) => {
+const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
   const [form, setForm] = useState({
     opdNumber: "",
     firstName: "",
@@ -220,208 +285,248 @@ const PatientForm = ({ onClose, onSubmit, isLoading, error }) => {
     nationalId: "",
   });
 
-  const handleChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value });
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    onSubmit({
-      ...form,
-      age: form.age ? Number(form.age) : null,
-    });
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit({ ...form, age: form.age ? Number(form.age) : null });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">เพิ่มลูกค้าใหม่</h2>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle>
+        </DialogHeader>
 
         {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
+          <div className="rounded-md bg-destructive/10 text-destructive text-sm p-3">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                เลข OPD *
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="p-opd">เลข OPD *</Label>
+              <Input
+                id="p-opd"
                 name="opdNumber"
                 value={form.opdNumber}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                เลขบัตรประชาชน
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="p-nid">เลขบัตรประชาชน</Label>
+              <Input
+                id="p-nid"
                 name="nationalId"
                 value={form.nationalId}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-blue-500"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">ชื่อ *</label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="p-first">ชื่อ *</Label>
+              <Input
+                id="p-first"
                 name="firstName"
                 value={form.firstName}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                นามสกุล *
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="p-last">นามสกุล *</Label>
+              <Input
+                id="p-last"
                 name="lastName"
                 value={form.lastName}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">ชื่อเล่น</label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="p-nick">ชื่อเล่น</Label>
+              <Input
+                id="p-nick"
                 name="nickname"
                 value={form.nickname}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">อายุ</label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="p-age">อายุ</Label>
+              <Input
+                id="p-age"
                 name="age"
+                type="number"
                 value={form.age}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">เบอร์โทร *</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="p-phone">เบอร์โทร *</Label>
+            <Input
+              id="p-phone"
               name="phone"
               value={form.phone}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              ประวัติแพ้ยา
-            </label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label htmlFor="p-allergy">ประวัติแพ้ยา</Label>
+            <Textarea
+              id="p-allergy"
               name="allergyHistory"
               value={form.allergyHistory}
               onChange={handleChange}
               rows={2}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 border rounded px-4 py-2 text-sm hover:bg-gray-50"
             >
               ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-const PatientDetail = ({ patient, onClose, onDelete }) => {
+const PatientDetail = ({ patient, onClose, onDelete, onUnlink, unlinkLoading }) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">ข้อมูลลูกค้า</h2>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
+    <>
+      <Dialog open={!!patient} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>ข้อมูลลูกค้า</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-3 text-sm">
-          <Row label="เลข OPD" value={patient.opdNumber} />
-          <Row
-            label="ชื่อ"
-            value={`${patient.firstName} ${patient.lastName}`}
-          />
-          <Row label="ชื่อเล่น" value={patient.nickname || "-"} />
-          <Row label="เบอร์โทร" value={patient.phone} />
-          <Row label="อายุ" value={patient.age || "-"} />
-          <Row
-            label="ประเภท"
-            value={patient.isNewPatient ? "ลูกค้าใหม่" : "ลูกค้าเก่า"}
-          />
-          <Row
-            label="แพ้ยา"
-            value={patient.allergyHistory || "-"}
-            valueClass="text-red-500"
-          />
-        </div>
+          {patient && (
+            <>
+              <div className="divide-y divide-border">
+                <DetailRow label="เลข OPD" value={patient.opdNumber} />
+                <DetailRow
+                  label="ชื่อ"
+                  value={`${patient.firstName} ${patient.lastName}`}
+                />
+                <DetailRow label="ชื่อเล่น" value={patient.nickname || "-"} />
+                <DetailRow
+                  label="เบอร์โทร"
+                  value={formatPhone(patient.phone)}
+                />
+                <DetailRow label="อายุ" value={patient.age || "-"} />
+                <DetailRow
+                  label="ประเภท"
+                  value={patient.isNewPatient ? "ลูกค้าใหม่" : "ลูกค้าเก่า"}
+                />
+                <DetailRow
+                  label="แพ้ยา"
+                  value={patient.allergyHistory || "-"}
+                  valueClassName={
+                    patient.allergyHistory ? "text-destructive" : undefined
+                  }
+                />
+                <div className="flex items-center justify-between py-2.5 gap-4">
+                  <span className="text-sm text-muted-foreground shrink-0">LINE</span>
+                  {patient.lineUserId ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {patient.lineDisplayName || "เชื่อมแล้ว"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setUnlinkOpen(true)}
+                        disabled={unlinkLoading}
+                      >
+                        ยกเลิก LINE
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-sm font-medium text-muted-foreground">
+                      ยังไม่ได้เชื่อม
+                    </span>
+                  )}
+                </div>
+              </div>
 
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={onDelete}
-            className="flex-1 border border-red-300 text-red-500 rounded px-4 py-2 text-sm hover:bg-red-50"
-          >
-            ลบ
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600"
-          >
-            ปิด
-          </button>
-        </div>
-      </div>
-    </div>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  ลบ
+                </Button>
+                <Button className="flex-1" onClick={onClose}>
+                  ปิด
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          onDelete();
+        }}
+        title="ยืนยันการลบลูกค้า"
+        description={
+          patient
+            ? `ต้องการลบ "${patient.firstName} ${patient.lastName}" ออกจากระบบหรือไม่?`
+            : ""
+        }
+        confirmLabel="ลบ"
+      />
+
+      <ConfirmDialog
+        open={unlinkOpen}
+        onClose={() => setUnlinkOpen(false)}
+        onConfirm={() => {
+          setUnlinkOpen(false);
+          onUnlink();
+        }}
+        title="ยืนยันการยกเลิก LINE"
+        description={
+          patient
+            ? `ต้องการยกเลิกการเชื่อม LINE ของ "${patient.firstName} ${patient.lastName}" หรือไม่?`
+            : ""
+        }
+        confirmLabel="ยกเลิก LINE"
+      />
+    </>
   );
 };
-
-const Row = ({ label, value, valueClass = "text-gray-700" }) => (
-  <div className="flex justify-between py-2 border-b last:border-0">
-    <span className="text-gray-500">{label}</span>
-    <span className={valueClass}>{value}</span>
-  </div>
-);
 
 export default PatientsPage;
