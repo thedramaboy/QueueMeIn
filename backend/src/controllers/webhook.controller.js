@@ -1,6 +1,7 @@
 import prisma from "../utils/prisma.js";
 import axios from "axios";
 import logger from "../utils/logger.js";
+import { sendMessage } from "../services/line.service.js";
 
 const getLineProfile = async (lineUserId) => {
   try {
@@ -113,18 +114,28 @@ export const linkLineUser = async (req, res) => {
       return res.status(404).json({ message: "ไม่พบข้อมูลลูกค้า" });
     }
 
+    const pendingUser = await prisma.pendingLineUser.findUnique({
+      where: { lineUserId },
+    });
+
     await prisma.patient.update({
       where: { id: Number(patientId) },
-      data: { lineUserId },
+      data: { lineUserId, lineDisplayName: pendingUser?.displayName ?? null },
     });
 
     await prisma.pendingLineUser.deleteMany({
       where: { lineUserId },
     });
 
+    await sendMessage(
+      lineUserId,
+      `สวัสดีค่ะ 👋 บัญชี LINE ของคุณได้รับการเชื่อมโยงกับระบบคลินิกเรียบร้อยแล้ว\nคุณจะได้รับแจ้งเตือนนัดหมายจากทางคลินิกผ่าน LINE นี้ต่อไปนะคะ 😊`,
+    );
+
     logger.info("Link LINE success", {
       patientId,
       lineUserId,
+      lineDisplayName: pendingUser?.displayName,
       requestedBy: req.user.id,
     });
 
@@ -137,6 +148,40 @@ export const linkLineUser = async (req, res) => {
     });
     res.status(500).json({
       message: "ไม่สามารถเชื่อม LINE ID กับ User นี้ได้",
+      error: error.message,
+    });
+  }
+};
+
+export const unlinkPatientLine = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: Number(patientId) },
+    });
+    if (!patient) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลลูกค้า" });
+    }
+
+    await prisma.patient.update({
+      where: { id: Number(patientId) },
+      data: { lineUserId: null, lineDisplayName: null },
+    });
+
+    logger.info("Unlink LINE success", {
+      patientId,
+      requestedBy: req.user.id,
+    });
+
+    res.json({ message: "ยกเลิกการผูก LINE สำเร็จ" });
+  } catch (error) {
+    logger.error("Unlink LINE error", {
+      patientId: req.params.patientId,
+      error: error.message,
+    });
+    res.status(500).json({
+      message: "ไม่สามารถยกเลิกการผูก LINE ได้",
       error: error.message,
     });
   }
