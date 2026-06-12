@@ -3,8 +3,31 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { scheduleService } from "../../services/schedule.service.js";
 import { doctorService } from "../../services/doctor.service.js";
 import { branchService } from "../../services/branch.service.js";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import PageHeader from "@/components/shared/PageHeader";
+import DetailRow from "@/components/shared/DetailRow";
+import EmptyState from "@/components/shared/EmptyState";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 const DAY_LABELS = {
   0: "อาทิตย์",
   1: "จันทร์",
@@ -15,19 +38,39 @@ const DAY_LABELS = {
   6: "เสาร์",
 };
 
+const HOUR_START = 8;
+const HOUR_END = 20;
+const TOTAL_MINUTES = (HOUR_END - HOUR_START) * 60;
+const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+const LANE_HEIGHT = 52;
+
+const timeToMinutes = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const getBlockStyle = (schedule) => {
+  const startMin = Math.max(0, timeToMinutes(schedule.startTime) - HOUR_START * 60);
+  const endMin = Math.min(TOTAL_MINUTES, timeToMinutes(schedule.endTime) - HOUR_START * 60);
+  return {
+    left: `${(startMin / TOTAL_MINUTES) * 100}%`,
+    width: `${((endMin - startMin) / TOTAL_MINUTES) * 100}%`,
+  };
+};
+
 const SchedulesPage = () => {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [filterBranch, setFilterBranch] = useState("");
-  const [filterDoctor, setFilterDoctor] = useState("");
+  const [filterBranch, setFilterBranch] = useState("all");
+  const [filterDoctor, setFilterDoctor] = useState("all");
 
   const { data: schedules = [], isLoading } = useQuery({
     queryKey: ["schedules", filterBranch, filterDoctor],
     queryFn: () =>
       scheduleService.getAll({
-        ...(filterBranch && { branchId: filterBranch }),
-        ...(filterDoctor && { doctorId: filterDoctor }),
+        ...(filterBranch !== "all" && { branchId: filterBranch }),
+        ...(filterDoctor !== "all" && { doctorId: filterDoctor }),
       }),
   });
 
@@ -57,123 +100,220 @@ const SchedulesPage = () => {
     },
   });
 
+  const schedulesByDay = DAY_ORDER.reduce((acc, day) => {
+    acc[day] = schedules.filter((s) => s.dayOfWeek === day);
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">ตารางเวลา</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            ทั้งหมด {schedules.length} รายการ
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        >
-          <Plus size={18} />
-          เพิ่มตาราง
-        </button>
+      <PageHeader
+        title="ตารางเวลา"
+        subtitle={`ทั้งหมด ${schedules.length} รายการ`}
+        action={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            เพิ่มตาราง
+          </Button>
+        }
+      />
+
+      <div className="flex flex-wrap gap-3">
+        <Select value={filterBranch} onValueChange={setFilterBranch}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="ทุกสาขา" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกสาขา</SelectItem>
+            {branches.map((b) => (
+              <SelectItem key={b.id} value={String(b.id)}>
+                {b.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterDoctor} onValueChange={setFilterDoctor}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="ทุกหมอ" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกหมอ</SelectItem>
+            {doctors.map((d) => (
+              <SelectItem key={d.id} value={String(d.id)}>
+                {d.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex gap-3"></div>
-      <select
-        value={filterBranch}
-        onChange={(event) => setFilterBranch(event.target.value)}
-        className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">ทุกสาขา</option>
-        {branches.map((branch) => (
-          <option key={branch.id} value={branch.id}>
-            {branch.name}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={filterDoctor}
-        onChange={(event) => setFilterDoctor(event.target.value)}
-        className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">ทุกหมอ</option>
-        {doctors.map((doctor) => (
-          <option key={doctor.id} value={doctor.id}>
-            {doctor.name}
-          </option>
-        ))}
-      </select>
-
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-400">กำลังโหลด</div>
-        ) : schedules.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">ไม่พบตารางเวลา</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-left text-gray-500">
-                <th className="px-6 py-3 font-medium">วัน</th>
-                <th className="px-6 py-3 font-medium">หมอ</th>
-                <th className="px-6 py-3 font-medium">สาขา</th>
-                <th className="px-6 py-3 font-medium">เวลา</th>
-                <th className="px-6 py-3 font-medium">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {schedules.map((schedule) => (
-                <tr
-                  key={schedule.id}
-                  onClick={() => setSelected(schedule)}
-                  className="hover:bg-gray-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 font-medium text-gray-800">
-                    {DAY_LABELS[schedule.dayOfWeek]}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-600">
-                    {schedule.doctor?.name}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-600">
-                    {schedule.branch?.name}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-600">
-                    {schedule.startTime} - {schedule.endTime}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${schedule.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+      {isLoading ? (
+        <GanttSkeleton />
+      ) : schedules.length === 0 ? (
+        <Card>
+          <CardContent className="p-8">
+            <EmptyState message="ไม่พบตารางเวลา" />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <CardContent className="p-0 overflow-x-auto">
+            <div className="min-w-[720px]">
+              {/* Hour header row */}
+              <div className="flex border-b border-border bg-muted/50 sticky top-0 z-10">
+                <div className="w-24 shrink-0 border-r border-border" />
+                <div className="flex flex-1">
+                  {HOURS.map((h) => (
+                    <div
+                      key={h}
+                      className="flex-1 text-center text-xs text-muted-foreground py-2 border-r border-border last:border-r-0 font-mono"
                     >
-                      {schedule.isActive ? "เปิด" : "ปิด"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                      {String(h).padStart(2, "0")}:00
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-      {showForm && (
-        <ScheduleForm
-          onClose={() => setShowForm(false)}
-          onSubmit={(data) => createMutation.mutate(data)}
-          isLoading={createMutation.isPending}
-          error={createMutation.error?.response?.data?.message}
-          doctors={doctors}
-          branches={branches}
-        />
+              {/* Day rows */}
+              {DAY_ORDER.map((day) => {
+                const daySchedules = schedulesByDay[day];
+                const rowHeight = Math.max(64, daySchedules.length * LANE_HEIGHT + 8);
+                return (
+                  <div
+                    key={day}
+                    className="flex border-b border-border last:border-b-0"
+                    style={{ minHeight: rowHeight }}
+                  >
+                    {/* Day label */}
+                    <div className="w-24 shrink-0 border-r border-border flex items-center justify-center sticky left-0 bg-card z-10">
+                      <span className="text-sm font-semibold text-foreground">
+                        {DAY_LABELS[day]}
+                      </span>
+                    </div>
+
+                    {/* Time area */}
+                    <div className="flex-1 relative">
+                      {/* Background hour grid lines */}
+                      <div className="absolute inset-0 flex pointer-events-none">
+                        {HOURS.map((h) => (
+                          <div
+                            key={h}
+                            className="flex-1 border-r border-border/40 last:border-r-0"
+                          />
+                        ))}
+                      </div>
+
+                      {/* Half-hour lines (lighter) */}
+                      <div className="absolute inset-0 flex pointer-events-none">
+                        {HOURS.map((h) => (
+                          <div key={h} className="flex-1 flex">
+                            <div className="flex-1" />
+                            <div className="w-px bg-border/20" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Schedule blocks */}
+                      {daySchedules.length === 0 ? (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground">—</span>
+                        </div>
+                      ) : (
+                        daySchedules.map((schedule, idx) => {
+                          const { left, width } = getBlockStyle(schedule);
+                          return (
+                            <div
+                              key={schedule.id}
+                              className="absolute rounded-lg bg-primary/12 border border-primary/30 cursor-pointer hover:bg-primary/20 transition-colors px-2 py-1 overflow-hidden"
+                              style={{
+                                left,
+                                width,
+                                top: idx * LANE_HEIGHT + 4,
+                                height: LANE_HEIGHT - 10,
+                              }}
+                              onClick={() => setSelected(schedule)}
+                            >
+                              <div className="flex items-baseline gap-1.5 overflow-hidden">
+                                <p className="text-xs font-semibold text-primary leading-tight truncate min-w-0">
+                                  {schedule.doctor?.name}
+                                </p>
+                                <p className="text-xs text-primary/60 font-mono shrink-0">
+                                  {schedule.startTime}–{schedule.endTime}
+                                </p>
+                              </div>
+                              <p className="text-xs text-primary/70 line-clamp-1">
+                                {schedule.branch?.name}
+                              </p>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {selected && (
-        <ScheduleDetail
-          schedule={selected}
-          onClose={() => setSelected(null)}
-          onDelete={() => deleteMutation.mutate(selected.id)}
-        />
-      )}
+      <ScheduleForm
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSubmit={(data) => createMutation.mutate(data)}
+        isLoading={createMutation.isPending}
+        error={createMutation.error?.response?.data?.message}
+        doctors={doctors}
+        branches={branches}
+      />
+
+      <ScheduleDetail
+        schedule={selected}
+        onClose={() => setSelected(null)}
+        onDelete={() => deleteMutation.mutate(selected.id)}
+      />
     </div>
   );
 };
 
+const GanttSkeleton = () => (
+  <Card className="overflow-hidden">
+    <CardContent className="p-0">
+      <div className="min-w-[720px]">
+        <div className="flex border-b border-border bg-muted/50 h-9">
+          <div className="w-24 shrink-0 border-r border-border" />
+          <div className="flex flex-1 items-center px-4 gap-4">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-3 flex-1" />
+            ))}
+          </div>
+        </div>
+        {DAY_ORDER.map((day) => (
+          <div key={day} className="flex border-b border-border last:border-b-0 h-16">
+            <div className="w-24 shrink-0 border-r border-border flex items-center justify-center">
+              <Skeleton className="h-3 w-12" />
+            </div>
+            <div className="flex-1 flex items-center px-4">
+              {day % 3 !== 0 && (
+                <Skeleton
+                  className="h-10 rounded-lg"
+                  style={{
+                    marginLeft: `${(day * 7) % 30}%`,
+                    width: `${30 + (day * 5) % 30}%`,
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+);
+
 const ScheduleForm = ({
+  open,
   onClose,
   onSubmit,
   isLoading,
@@ -189,12 +329,8 @@ const ScheduleForm = ({
     endTime: "",
   });
 
-  const handleChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value });
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
     onSubmit({
       ...form,
       branchId: Number(form.branchId),
@@ -203,176 +339,175 @@ const ScheduleForm = ({
     });
   };
 
+  const set = (field) => (value) => setForm({ ...form, [field]: value });
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">เพิ่มตารางเวลา</h2>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>เพิ่มตารางเวลา</DialogTitle>
+        </DialogHeader>
 
         {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
+          <div className="rounded-md bg-destructive/10 text-destructive text-sm p-3">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">สาขา *</label>
-            <select
-              name="branchId"
-              value={form.branchId}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">เลือกสาขา</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-1.5">
+            <Label htmlFor="sched-branch">สาขา *</Label>
+            <Select value={form.branchId} onValueChange={set("branchId")} required>
+              <SelectTrigger id="sched-branch" className="w-full">
+                <SelectValue placeholder="เลือกสาขา" />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={String(b.id)}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">หมอ *</label>
-            <select
-              name="doctorId"
-              value={form.doctorId}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">เลือกหมอ</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
-                  {doctor.name}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-1.5">
+            <Label htmlFor="sched-doctor">หมอ *</Label>
+            <Select value={form.doctorId} onValueChange={set("doctorId")} required>
+              <SelectTrigger id="sched-doctor" className="w-full">
+                <SelectValue placeholder="เลือกหมอ" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors.map((d) => (
+                  <SelectItem key={d.id} value={String(d.id)}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">วัน *</label>
-            <select
-              name="dayOfWeek"
-              value={form.dayOfWeek}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">เลือกวัน</option>
-              {Object.entries(DAY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-1.5">
+            <Label htmlFor="sched-day">วัน *</Label>
+            <Select value={form.dayOfWeek} onValueChange={set("dayOfWeek")} required>
+              <SelectTrigger id="sched-day" className="w-full">
+                <SelectValue placeholder="เลือกวัน" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(DAY_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                เวลาเริ่ม *
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="sched-start">เวลาเริ่ม *</Label>
+              <Input
+                id="sched-start"
                 type="time"
-                name="startTime"
                 value={form.startTime}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => set("startTime")(e.target.value)}
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                เวลาสิ้นสุด *
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="sched-end">เวลาสิ้นสุด *</Label>
+              <Input
+                id="sched-end"
                 type="time"
-                name="endTime"
                 value={form.endTime}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => set("endTime")(e.target.value)}
                 required
               />
             </div>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 border rounded px-4 py-2 text-sm hover:bg-gray-50"
             >
               ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-const ScheduleDetail = ({ schedule, onClose, onDelete }) => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">รายละเอียดตาราง</h2>
-        <button onClick={onClose}>
-          <X size={20} className="text-gray-400 hover:text-gray-600" />
-        </button>
-      </div>
+const ScheduleDetail = ({ schedule, onClose, onDelete }) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  return (
+    <>
+      <Dialog open={!!schedule} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>รายละเอียดตาราง</DialogTitle>
+          </DialogHeader>
 
-      <div className="space-y-3 text-sm">
-        <Row label="วัน" value={DAY_LABELS[schedule.dayOfWeek]} />
-        <Row label="หมอ" value={schedule.doctor?.name} />
-        <Row label="สาขา" value={schedule.branch?.name} />
-        <Row
-          label="เวลา"
-          value={`${schedule.startTime} - ${schedule.endTime}`}
-        />
-        <Row
-          label="สถานะ"
-          value={schedule.isActive ? "เปิด" : "ปิด"}
-          valueClass={schedule.isActive ? "text-green-600" : "text-red-500"}
-        />
-      </div>
+          {schedule && (
+            <>
+              <div className="divide-y divide-border">
+                <DetailRow label="วัน" value={DAY_LABELS[schedule.dayOfWeek]} />
+                <DetailRow label="หมอ" value={schedule.doctor?.name} />
+                <DetailRow label="สาขา" value={schedule.branch?.name} />
+                <DetailRow
+                  label="เวลา"
+                  value={`${schedule.startTime} – ${schedule.endTime}`}
+                />
+                <DetailRow
+                  label="สถานะ"
+                  value={schedule.isActive ? "เปิด" : "ปิด"}
+                  valueClassName={
+                    schedule.isActive ? "text-green-600" : "text-destructive"
+                  }
+                />
+              </div>
 
-      <div className="flex gap-3 mt-6">
-        <button
-          onClick={onDelete}
-          className="flex-1 border border-red-300 text-red-500 rounded px-4 py-2 text-sm hover:bg-red-50"
-        >
-          ปิดตาราง
-        </button>
-        <button
-          onClick={onClose}
-          className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600"
-        >
-          ปิด
-        </button>
-      </div>
-    </div>
-  </div>
-);
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  ปิดตาราง
+                </Button>
+                <Button className="flex-1" onClick={onClose}>
+                  ปิด
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-const Row = ({ label, value, valueClass = "text-gray-700" }) => (
-  <div className="flex justify-between py-2 border-b last:border-0">
-    <span className="text-gray-500">{label}</span>
-    <span className={valueClass}>{value}</span>
-  </div>
-);
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          onDelete();
+        }}
+        title="ยืนยันการปิดตาราง"
+        description={
+          schedule
+            ? `ต้องการปิดตาราง ${DAY_LABELS[schedule.dayOfWeek]} ของ ${schedule.doctor?.name} หรือไม่?`
+            : ""
+        }
+        confirmLabel="ปิดตาราง"
+      />
+    </>
+  );
+};
 
 export default SchedulesPage;
