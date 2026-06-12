@@ -7,34 +7,112 @@ import { patientService } from "../../services/patient.service.js";
 import { doctorService } from "../../services/doctor.service.js";
 import { branchService } from "../../services/branch.service.js";
 import { serviceService } from "../../services/service.service.js";
-import { Plus, X, Calendar, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { cn, formatCurrency } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import PageHeader from "@/components/shared/PageHeader";
+import StatusBadge from "@/components/shared/StatusBadge";
+import DetailRow from "@/components/shared/DetailRow";
+import EmptyState from "@/components/shared/EmptyState";
 
-const StatusBadge = ({ status }) => {
-  const config = {
-    PENDING: { label: "รอยืนยัน", color: "bg-yellow-100 text-yellow-700" },
-    CONFIRMED: { label: "ยืนยันแล้ว", color: "bg-blue-100 text-blue-700" },
-    COMPLETED: { label: "เสร็จแล้ว", color: "bg-green-100 text-green-700" },
-    CANCELLED: { label: "ยกเลิก", color: "bg-red-100 text-red-700" },
-    NO_SHOW: { label: "ไม่มา", color: "bg-gray-100 text-gray-700" },
-    RESCHEDULED: { label: "เลื่อนนัด", color: "bg-purple-100 text-purple-700" },
-  };
+const BookingSlotSkeleton = () => (
+  <div className="w-full p-4 rounded-xl border-2 border-border bg-card">
+    <div className="flex items-start justify-between gap-3">
+      <div className="space-y-2 flex-1">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-3 w-52" />
+      </div>
+      <Skeleton className="h-5 w-16 rounded-full shrink-0" />
+    </div>
+  </div>
+);
 
-  const { label, color } = config[status] || {
-    label: status,
-    color: "bg-gray-100",
-  };
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
-      {label}
-    </span>
-  );
+const SLOT_BORDER = {
+  PENDING:     "border-amber-400",
+  CONFIRMED:   "border-blue-400",
+  COMPLETED:   "border-green-500",
+  CANCELLED:   "border-red-400",
+  NO_SHOW:     "border-border",
+  RESCHEDULED: "border-purple-400",
 };
+
+const BookingSlot = ({ booking, onClick }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "w-full text-left p-4 rounded-xl border-2 bg-card transition-colors min-h-[44px]",
+      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+      "hover:bg-accent/10",
+      SLOT_BORDER[booking.status] ?? "border-border",
+    )}
+  >
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="font-medium text-sm truncate">
+          {booking.patient?.nickname || booking.patient?.firstName}{" "}
+          {booking.patient?.lastName}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {booking.startTime} – {booking.endTime} · {booking.service?.name}
+        </p>
+        {booking.patient?.allergyHistory && (
+          <p className="text-xs text-destructive mt-0.5">
+            แพ้: {booking.patient.allergyHistory}
+          </p>
+        )}
+      </div>
+      <div className="shrink-0 flex flex-col items-end gap-1">
+        <StatusBadge status={booking.status} />
+        <span className="text-xs text-muted-foreground">
+          {booking.doctor?.name}
+        </span>
+      </div>
+    </div>
+  </button>
+);
 
 const BookingsPage = () => {
   const queryClient = useQueryClient();
-  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [calDate, setCalDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  const date = format(calDate, "yyyy-MM-dd");
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings", date],
@@ -56,122 +134,80 @@ const BookingsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">การจอง</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {format(new Date(date), "EEEE dd MMMM yyyy", { locale: th })}
+      <PageHeader
+        title="การจอง"
+        subtitle={format(calDate, "EEEE dd MMMM yyyy", { locale: th })}
+        action={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            จองคิว
+          </Button>
+        }
+      />
+
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Left: Calendar */}
+        <div className="md:w-80 shrink-0">
+          <Card>
+            <CardContent className="p-1">
+              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
+                <DateCalendar
+                  value={calDate}
+                  onChange={(d) => d && setCalDate(d)}
+                  sx={{ width: "100%" }}
+                />
+              </LocalizationProvider>
+            </CardContent>
+          </Card>
+          <p className="text-sm text-muted-foreground mt-2 px-1">
+            {bookings.length} การจอง
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        >
-          <Plus size={18} />
-          จองคิว
-        </button>
+
+        {/* Right: Booking slots */}
+        <div className="flex-1 min-w-0 max-w-lg">
+          <ScrollArea className="h-[calc(100vh-220px)]">
+            <div className="space-y-2 pr-4">
+              {isLoading ? (
+                Array.from({ length: 4 }, (_, i) => <BookingSlotSkeleton key={i} />)
+              ) : bookings.length === 0 ? (
+                <EmptyState message="ไม่มีการจองวันนี้" />
+              ) : (
+                bookings.map((booking) => (
+                  <BookingSlot
+                    key={booking.id}
+                    booking={booking}
+                    onClick={() => setSelected(booking)}
+                  />
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Calendar size={18} className="text-gray-400" />
-        <input
-          type="date"
-          value={date}
-          onChange={(event) => setDate(event.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <span className="text-sm text-gray-500">{bookings.length} การจอง</span>
-      </div>
+      <BookingForm
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSubmit={(data) => createMutation.mutate(data)}
+        isLoading={createMutation.isPending}
+        error={createMutation.error?.response?.data?.message}
+        defaultDate={date}
+      />
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-400">กำลังโหลด...</div>
-        ) : bookings.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">ไม่มีการจองวันนี้</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-left text-gray-500">
-                <th className="px-6 py-3 font-medium">เลขที่จอง</th>
-                <th className="px-6 py-3 font-medium">เวลา</th>
-                <th className="px-6 py-3 font-medium">ลูกค้า</th>
-                <th className="px-6 py-3 font-medium">หัตถการ</th>
-                <th className="px-6 py-3 font-medium">หมอ</th>
-                <th className="px-6 py-3 font-medium">สาขา</th>
-                <th className="px-6 py-3 font-medium">มัดจำ</th>
-                <th className="px-6 py-3 font-medium">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {bookings.map((booking) => (
-                <tr
-                  key={booking.id}
-                  onClick={() => setSelected(booking)}
-                  className="hover:bg-gray-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 text-gray-500 text-xs">
-                    {booking.bookingNo}
-                  </td>
-                  <td className="px-6 py-4 text-gray-700">
-                    {booking.startTime} - {booking.endTime}
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="font-medium text-gray-800">
-                      {booking.patient?.nickname || booking.patient?.firstName}
-                    </p>
-                    {booking.patient?.allergyHistory && (
-                      <p className="text-red-400 text-xs">
-                        แพ้: {booking.patient.allergyHistory}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {booking.service?.name}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {booking.doctor?.name}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {booking.branch?.name}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {booking.deposit ? `${booking.deposit} ฿` : "-"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={booking.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {showForm && (
-        <BookingForm
-          onClose={() => setShowForm(false)}
-          onSubmit={(data) => createMutation.mutate(data)}
-          isLoading={createMutation.isPending}
-          error={createMutation.error?.response?.data?.message}
-          defaultDate={date}
-        />
-      )}
-
-      {selected && (
-        <BookingDetail
-          booking={selected}
-          onClose={() => setSelected(null)}
-          onStatusChange={(status) => {
-            statusMutation.mutate({ id: selected.id, status });
-            setSelected(null);
-          }}
-        />
-      )}
+      <BookingDetail
+        booking={selected}
+        onClose={() => setSelected(null)}
+        onStatusChange={(status) => {
+          statusMutation.mutate({ id: selected.id, status });
+          setSelected(null);
+        }}
+      />
     </div>
   );
 };
 
-const BookingForm = ({ onClose, onSubmit, isLoading, error, defaultDate }) => {
+const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate }) => {
   const [form, setForm] = useState({
     patientId: "",
     doctorId: "",
@@ -184,6 +220,8 @@ const BookingForm = ({ onClose, onSubmit, isLoading, error, defaultDate }) => {
   });
 
   const [patientSearch, setPatientSearch] = useState("");
+  const [patientDisplay, setPatientDisplay] = useState("");
+  const [patientPopoverOpen, setPatientPopoverOpen] = useState(false);
 
   const { data: patients = [] } = useQuery({
     queryKey: ["patients", patientSearch],
@@ -206,12 +244,8 @@ const BookingForm = ({ onClose, onSubmit, isLoading, error, defaultDate }) => {
     queryFn: serviceService.getAll,
   });
 
-  const handleChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value });
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
     onSubmit({
       ...form,
       patientId: Number(form.patientId),
@@ -222,273 +256,271 @@ const BookingForm = ({ onClose, onSubmit, isLoading, error, defaultDate }) => {
     });
   };
 
+  const set = (field) => (value) => setForm((f) => ({ ...f, [field]: value }));
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh]">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">จองคิวใหม่</h2>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>จองคิวใหม่</DialogTitle>
+        </DialogHeader>
 
         {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
+          <div className="rounded-md bg-destructive/10 text-destructive text-sm p-3">
             {error}
           </div>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              ค้นหาลูกค้า
-            </label>
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="พิมพ์ชื่อหรือเบอร์โทร"
-                value={patientSearch}
-                onChange={(event) => setPatientSearch(event.target.value)}
-                className="w-full pl-9 pr-3 py-2 border rounded text-sm focus:ouline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            {patients.length > 0 && !form.patientId && (
-              <div className="border rounded mt-1 divide-y max-h-32 overflow-y-auto">
-                {patients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    onClick={() => {
-                      setForm({ ...form, patientId: patient.id });
-                      setPatientSearch(
-                        `${patient.firstName} ${patient.lastName} (${patient.phone})`,
-                      );
-                    }}
-                    className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                  >
-                    {patient.nickname || patient.firstName} {patient.lastName} -{" "}
-                    {patient.phone}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">สาขา *</label>
-              <select
-                name="branchId"
-                value={form.branchId}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">เลือกสาขา</option>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">หมอ *</label>
-              <select
-                name="doctorId"
-                value={form.doctorId}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">เลือกหมอ</option>
-                {doctors.map((doctor) => (
-                  <option key={doctor.id} value={doctor.id}>
-                    {doctor.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">หัตถการ *</label>
-            <select
-              name="serviceId"
-              value={form.serviceId}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
+          {/* Patient search combobox */}
+          <div className="space-y-1.5">
+            <Label>ค้นหาลูกค้า *</Label>
+            <Popover
+              open={patientPopoverOpen}
+              onOpenChange={setPatientPopoverOpen}
             >
-              <option value="">เลือกหัตถการ</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name} ({service.duration} นาที)
-                </option>
-              ))}
-            </select>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between font-normal"
+                >
+                  {patientDisplay || "พิมพ์ชื่อหรือเบอร์โทร"}
+                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput
+                    placeholder="ค้นหาลูกค้า..."
+                    value={patientSearch}
+                    onValueChange={(v) => {
+                      setPatientSearch(v);
+                      setForm((f) => ({ ...f, patientId: "" }));
+                    }}
+                  />
+                  <CommandList>
+                    <CommandEmpty>ไม่พบลูกค้า</CommandEmpty>
+                    <CommandGroup>
+                      {patients.map((p) => (
+                        <CommandItem
+                          key={p.id}
+                          value={`${p.firstName} ${p.lastName} ${p.phone}`}
+                          onSelect={() => {
+                            setForm((f) => ({ ...f, patientId: p.id }));
+                            setPatientDisplay(
+                              `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
+                            );
+                            setPatientSearch(
+                              `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
+                            );
+                            setPatientPopoverOpen(false);
+                          }}
+                        >
+                          {p.nickname || p.firstName} {p.lastName} – {p.phone}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">วันที่ *</label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="b-branch">สาขา *</Label>
+              <Select value={form.branchId} onValueChange={set("branchId")} required>
+                <SelectTrigger id="b-branch" className="w-full">
+                  <SelectValue placeholder="เลือกสาขา" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={String(b.id)}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="b-doctor">หมอ *</Label>
+              <Select value={form.doctorId} onValueChange={set("doctorId")} required>
+                <SelectTrigger id="b-doctor" className="w-full">
+                  <SelectValue placeholder="เลือกหมอ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors.map((d) => (
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="b-service">หัตถการ *</Label>
+            <Select value={form.serviceId} onValueChange={set("serviceId")} required>
+              <SelectTrigger id="b-service" className="w-full">
+                <SelectValue placeholder="เลือกหัตถการ" />
+              </SelectTrigger>
+              <SelectContent>
+                {services.map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>
+                    {s.name} ({s.duration} นาที)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="b-date">วันที่ *</Label>
+              <Input
+                id="b-date"
                 type="date"
-                name="date"
                 value={form.date}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => set("date")(e.target.value)}
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                เวลาเริ่ม *
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="b-time">เวลาเริ่ม *</Label>
+              <Input
+                id="b-time"
                 type="time"
-                name="startTime"
                 value={form.startTime}
-                onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => set("startTime")(e.target.value)}
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              มัดจำ (บาท)
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="b-deposit">มัดจำ (บาท)</Label>
+            <Input
+              id="b-deposit"
               type="number"
-              name="deposit"
               value={form.deposit}
-              onChange={handleChange}
+              onChange={(e) => set("deposit")(e.target.value)}
               placeholder="500"
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">หมายเหตุ</label>
-            <textarea
-              name="note"
+          <div className="space-y-1.5">
+            <Label htmlFor="b-note">หมายเหตุ</Label>
+            <Textarea
+              id="b-note"
               value={form.note}
-              onChange={handleChange}
+              onChange={(e) => set("note")(e.target.value)}
               rows={2}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 border rounded px-4 py-2 text-sm hover:bg-gray-50"
             >
               ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 const BookingDetail = ({ booking, onClose, onStatusChange }) => {
   const statuses = [
-    { value: "CONFIRMED", label: "ยืนยันนัด" },
-    { value: "COMPLETED", label: "เสร็จแล้ว" },
-    { value: "CANCELLED", label: "ยกเลิก" },
-    { value: "NO_SHOW", label: "ไม่มา" },
+    { value: "CONFIRMED",  label: "ยืนยันนัด" },
+    { value: "COMPLETED",  label: "เสร็จแล้ว" },
+    { value: "CANCELLED",  label: "ยกเลิก" },
+    { value: "NO_SHOW",    label: "ไม่มา" },
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-semibold">รายละเอียดการจอง</h2>
-            <p className="text-xs text-gray-400">{booking.bookingNo}</p>
-          </div>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
-
-        <div className="space-y-2 text-sm mb-6">
-          <Row
-            label="ลูกค้า"
-            value={`${booking.patient?.firstName} ${booking.patient?.lastName}`}
-          />
-          <Row label="ชื่อเล่น" value={booking.patient?.nickname || "-"} />
-          <Row
-            label="เวลา"
-            value={`${booking.startTime} - ${booking.endTime}`}
-          />
-          <Row label="หัตถการ" value={booking.service?.name} />
-          <Row label="หมอ" value={booking.doctor?.name} />
-          <Row label="สาขา" value={booking.branch?.name} />
-          <Row
-            label="มัดจำ"
-            value={booking.deposit ? `฿${booking.deposit}` : "-"}
-          />
-          <Row label="หมายเหตุ" value={booking.note || "-"} />
-          {booking.patient?.allergyHistory && (
-            <Row
-              label="แพ้ยา"
-              value={booking.patient.allergyHistory}
-              valueClass="text-red-500"
-            />
+    <Dialog open={!!booking} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>รายละเอียดการจอง</DialogTitle>
+          {booking && (
+            <p className="text-xs text-muted-foreground">{booking.bookingNo}</p>
           )}
-          <div className="flex justify-between py-2 border-b">
-            <span className="text-gray-500">สถานะ</span>
-            <StatusBadge status={booking.status} />
-          </div>
-        </div>
+        </DialogHeader>
 
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">เปลี่ยนสถานะ</p>
-          <div className="grid grid-cols-2 gap-2">
-            {statuses.map((status) => (
-              <button
-                key={status.value}
-                onClick={() => onStatusChange(status.value)}
-                disabled={booking.status === status.value}
-                className="border rounded px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {status.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {booking && (
+          <>
+            <div className="divide-y divide-border">
+              <DetailRow
+                label="ลูกค้า"
+                value={`${booking.patient?.firstName} ${booking.patient?.lastName}`}
+              />
+              <DetailRow
+                label="ชื่อเล่น"
+                value={booking.patient?.nickname || "-"}
+              />
+              <DetailRow
+                label="เวลา"
+                value={`${booking.startTime} – ${booking.endTime}`}
+              />
+              <DetailRow label="หัตถการ" value={booking.service?.name} />
+              <DetailRow label="หมอ" value={booking.doctor?.name} />
+              <DetailRow label="สาขา" value={booking.branch?.name} />
+              <DetailRow
+                label="มัดจำ"
+                value={booking.deposit ? `฿${formatCurrency(booking.deposit)}` : "-"}
+              />
+              <DetailRow label="หมายเหตุ" value={booking.note || "-"} />
+              {booking.patient?.allergyHistory && (
+                <DetailRow
+                  label="แพ้ยา"
+                  value={booking.patient.allergyHistory}
+                  valueClassName="text-destructive"
+                />
+              )}
+              <div className="flex items-center justify-between py-2.5 gap-4">
+                <span className="text-sm text-muted-foreground shrink-0">
+                  สถานะ
+                </span>
+                <StatusBadge status={booking.status} />
+              </div>
+            </div>
 
-        <button
-          onClick={onClose}
-          className="w-full mt-4 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600"
-        >
-          ปิด
-        </button>
-      </div>
-    </div>
+            <div>
+              <p className="text-sm font-medium mb-2">เปลี่ยนสถานะ</p>
+              <div className="grid grid-cols-2 gap-2">
+                {statuses.map((s) => (
+                  <Button
+                    key={s.value}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onStatusChange(s.value)}
+                    disabled={booking.status === s.value}
+                    className="min-h-[44px]"
+                  >
+                    {s.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Button className="w-full" onClick={onClose}>
+              ปิด
+            </Button>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
-
-const Row = ({ label, value, valueClass = "text-gray-700" }) => (
-  <div className="flex justify-between py-2 border-b last:border-0">
-    <span className="text-gray-500">{label}</span>
-    <span className={valueClass}>{value}</span>
-  </div>
-);
 
 export default BookingsPage;
