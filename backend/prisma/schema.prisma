@@ -137,8 +137,9 @@ model Patient {
   phone          String   @unique
   age            Int?
   allergyHistory String?
-  lineUserId     String?
-  isNewPatient   Boolean  @default(true)
+  lineUserId      String?
+  lineDisplayName String?
+  isNewPatient    Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

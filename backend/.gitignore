@@ -3,3 +3,4 @@ node_modules
 /src/utils/testLine.js
 dist
 logs
+/prisma/seed.js
