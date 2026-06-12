@@ -7,3 +7,11 @@ export const createServiceSchema = z.object({
     price: z.number().optional().nullable(),
     description: z.string().optional().nullable()
 })
+
+export const updateServiceSchema = z.object({
+    name: z.string().min(1).optional(),
+    categoryId: z.number().int().positive().optional(),
+    duration: z.number().int().min(1).optional(),
+    price: z.number().optional().nullable(),
+    description: z.string().optional().nullable(),
+})
