@@ -51,6 +51,12 @@ export const getSummary = async (req, res) => {
       branches.map((branch) => [branch.id, branch.name]),
     );
 
+    const branchCountMap = {};
+    for (const item of bookingsByBranch) {
+      const name = branchMap[item.branchId] || "ไม่ทราบ";
+      branchCountMap[name] = (branchCountMap[name] || 0) + item._count.branchId;
+    }
+
     logger.info("Get summary success", {
       month: currentMonth,
       year: currentYear,
@@ -70,9 +76,9 @@ export const getSummary = async (req, res) => {
         status: booking.status,
         count: booking._count.status,
       })),
-      bookingsByBranch: bookingsByBranch.map((booking) => ({
-        branch: branchMap[booking.branchId] || "ไม่ทราบ",
-        count: booking._count.branchId,
+      bookingsByBranch: Object.entries(branchCountMap).map(([branch, count]) => ({
+        branch,
+        count,
       })),
     });
   } catch (error) {
