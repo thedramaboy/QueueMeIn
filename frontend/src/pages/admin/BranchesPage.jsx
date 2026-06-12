@@ -1,7 +1,26 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { branchService } from "../../services/branch.service.js";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
+import { formatPhone } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DataGrid } from "@mui/x-data-grid";
+import PageHeader from "@/components/shared/PageHeader";
+import StatusBadge from "@/components/shared/StatusBadge";
+import DetailRow from "@/components/shared/DetailRow";
+import EmptyState from "@/components/shared/EmptyState";
+import TableSkeleton from "@/components/shared/TableSkeleton";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { datagridSx } from "@/lib/datagrid";
 
 const BranchesPage = () => {
   const queryClient = useQueryClient();
@@ -30,99 +49,73 @@ const BranchesPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">สาขา</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            ทั้งหมด {branches.length} สาขา
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        >
-          <Plus size={18} />
-          เพิ่มสาขา
-        </button>
-      </div>
+      <PageHeader
+        title="สาขา"
+        subtitle={`ทั้งหมด ${branches.length} สาขา`}
+        action={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            เพิ่มสาขา
+          </Button>
+        }
+      />
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-400">กำลังโหลด...</div>
-        ) : branches.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">ไม่พบข้อมูลสาขา</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-left text-gray-500">
-                <th className="px-6 py-3 font-medium">ชื่อสาขา</th>
-                <th className="px-6 py-3 font-medium">ที่อยู่</th>
-                <th className="px-6 py-3 font-medium">เบอร์โทร</th>
-                <th className="px-6 py-3 font-medium">สถานะ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {branches.map((branch) => (
-                <tr
-                  key={branch.id}
-                  onClick={() => setSelected(branch)}
-                  className="hover:bg-gray-50 cursor-pointer"
-                >
-                  <td className="px-6 py-4 font-medium text-gray-800">
-                    {branch.name}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{branch.location}</td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {branch.phone || "-"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium
-                      ${
-                        branch.isActive
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {branch.isActive ? "เปิด" : "ปิด"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {isLoading ? (
+            <TableSkeleton cols={4} />
+          ) : branches.length === 0 ? (
+            <EmptyState message="ไม่พบข้อมูลสาขา" />
+          ) : (
+            <DataGrid
+              rows={branches}
+              columns={[
+                { field: "name", headerName: "ชื่อสาขา", flex: 1 },
+                { field: "location", headerName: "ที่อยู่", flex: 1 },
+                { field: "phone", headerName: "เบอร์โทร", width: 140, valueGetter: (v) => formatPhone(v) },
+                {
+                  field: "isActive",
+                  headerName: "สถานะ",
+                  width: 100,
+                  renderCell: (params) => (
+                    <StatusBadge
+                      status={params.row.isActive ? "ACTIVE" : "INACTIVE"}
+                      label={params.row.isActive ? "เปิด" : "ปิด"}
+                    />
+                  ),
+                },
+              ]}
+              autoHeight
+              hideFooter
+              onRowClick={(params) => setSelected(params.row)}
+              sx={{ ...datagridSx, cursor: "pointer" }}
+            />
+          )}
+        </CardContent>
+      </Card>
 
-      {showForm && (
-        <BranchForm
-          onClose={() => setShowForm(false)}
-          onSubmit={(data) => createMutation.mutate(data)}
-          isLoading={createMutation.isPending}
-          error={createMutation.error?.response?.data?.message}
-        />
-      )}
+      <BranchForm
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSubmit={(data) => createMutation.mutate(data)}
+        isLoading={createMutation.isPending}
+        error={createMutation.error?.response?.data?.message}
+      />
 
-      {selected && (
-        <BranchDetail
-          branch={selected}
-          onClose={() => setSelected(null)}
-          onDelete={() => {
-            deleteMutation.mutate(selected.id);
-            setSelected(null);
-          }}
-        />
-      )}
+      <BranchDetail
+        branch={selected}
+        onClose={() => setSelected(null)}
+        onDelete={() => {
+          deleteMutation.mutate(selected.id);
+          setSelected(null);
+        }}
+      />
     </div>
   );
 };
 
-const BranchForm = ({ onClose, onSubmit, isLoading, error }) => {
-  const [form, setForm] = useState({
-    name: "",
-    location: "",
-    phone: "",
-  });
+const BranchForm = ({ open, onClose, onSubmit, isLoading, error }) => {
+  const [form, setForm] = useState({ name: "", location: "", phone: "" });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -134,120 +127,120 @@ const BranchForm = ({ onClose, onSubmit, isLoading, error }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">เพิ่มสาขาใหม่</h2>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>เพิ่มสาขาใหม่</DialogTitle>
+        </DialogHeader>
 
         {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
+          <div className="rounded-md bg-destructive/10 text-destructive text-sm p-3">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">ชื่อสาขา *</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="branch-name">ชื่อสาขา *</Label>
+            <Input
+              id="branch-name"
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">ที่อยู่ *</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="branch-location">ที่อยู่ *</Label>
+            <Input
+              id="branch-location"
               name="location"
               value={form.location}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">เบอร์โทร</label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="branch-phone">เบอร์โทร</Label>
+            <Input
+              id="branch-phone"
               name="phone"
               value={form.phone}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 border rounded px-4 py-2 text-sm hover:bg-gray-50"
             >
               ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-const BranchDetail = ({ branch, onClose, onDelete }) => (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">ข้อมูลสาขา</h2>
-        <button onClick={onClose}>
-          <X size={20} className="text-gray-400 hover:text-gray-600" />
-        </button>
-      </div>
+const BranchDetail = ({ branch, onClose, onDelete }) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  return (
+    <>
+      <Dialog open={!!branch} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>ข้อมูลสาขา</DialogTitle>
+          </DialogHeader>
 
-      <div className="space-y-3 text-sm">
-        <Row label="ชื่อสาขา" value={branch.name} />
-        <Row label="ที่อยู่" value={branch.location} />
-        <Row label="เบอร์โทร" value={branch.phone || "-"} />
-        <Row
-          label="สถานะ"
-          value={branch.isActive ? "เปิด" : "ปิด"}
-          valueClass={branch.isActive ? "text-green-600" : "text-red-500"}
-        />
-      </div>
+          {branch && (
+            <>
+              <div className="divide-y divide-border">
+                <DetailRow label="ชื่อสาขา" value={branch.name} />
+                <DetailRow label="ที่อยู่" value={branch.location} />
+                <DetailRow label="เบอร์โทร" value={formatPhone(branch.phone)} />
+                <DetailRow
+                  label="สถานะ"
+                  value={branch.isActive ? "เปิด" : "ปิด"}
+                  valueClassName={branch.isActive ? "text-green-600" : "text-destructive"}
+                />
+              </div>
 
-      <div className="flex gap-3 mt-6">
-        <button
-          onClick={onDelete}
-          className="flex-1 border border-red-300 text-red-500 rounded px-4 py-2 text-sm hover:bg-red-50"
-        >
-          ปิดสาขา
-        </button>
-        <button
-          onClick={onClose}
-          className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600"
-        >
-          ปิด
-        </button>
-      </div>
-    </div>
-  </div>
-);
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  ปิดสาขา
+                </Button>
+                <Button className="flex-1" onClick={onClose}>
+                  ปิด
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-const Row = ({ label, value, valueClass = "text-gray-700" }) => (
-  <div className="flex justify-between py-2 border-b last:border-0">
-    <span className="text-gray-500">{label}</span>
-    <span className={valueClass}>{value}</span>
-  </div>
-);
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => { setConfirmOpen(false); onDelete(); }}
+        title="ยืนยันการปิดสาขา"
+        description={branch ? `ต้องการปิดสาขา "${branch.name}" หรือไม่?` : ""}
+        confirmLabel="ปิดสาขา"
+      />
+    </>
+  );
+};
 
 export default BranchesPage;
