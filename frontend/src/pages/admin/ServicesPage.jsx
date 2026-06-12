@@ -2,13 +2,42 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { categoryService } from "../../services/category.service.js";
 import { serviceService } from "../../services/service.service.js";
-import { Plus, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DataGrid } from "@mui/x-data-grid";
+import PageHeader from "@/components/shared/PageHeader";
+import StatusBadge from "@/components/shared/StatusBadge";
+import EmptyState from "@/components/shared/EmptyState";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { datagridSx } from "@/lib/datagrid";
 
 const ServicesPage = () => {
   const queryClient = useQueryClient();
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState(null);
+  const [confirmCategory, setConfirmCategory] = useState(null);
+  const [confirmService, setConfirmService] = useState(null);
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["categories"],
@@ -30,8 +59,7 @@ const ServicesPage = () => {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: categoryService.delete,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["categories"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
 
   const createServiceMutation = useMutation({
@@ -48,39 +76,47 @@ const ServicesPage = () => {
   });
 
   const getServicesByCategory = (categoryId) =>
-    services.filter((service) => service.categoryId === categoryId);
+    services.filter((s) => s.categoryId === categoryId);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">หัตถการ</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {categories.length} หมวดหมู่ / {services.length} หัตถการ
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowCategoryForm(true)}
-            className="flex items-center gap-2 border border-blue-500 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-50 text-sm"
-          >
-            <Plus size={16} />
-            เพิ่มหมวดหมู่
-          </button>
-          <button
-            onClick={() => setShowServiceForm(true)}
-            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
-          >
-            <Plus size={16} />
-            เพิ่มหัตถการ
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="หัตถการ"
+        subtitle={`${categories.length} หมวดหมู่ / ${services.length} หัตถการ`}
+        action={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowCategoryForm(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              เพิ่มหมวดหมู่
+            </Button>
+            <Button onClick={() => setShowServiceForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              เพิ่มหัตถการ
+            </Button>
+          </div>
+        }
+      />
 
       {isLoading ? (
-        <div className="p-8 text-center text-gray-400">กำลังโหลด...</div>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-4 w-4 rounded" />
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-5 w-12 rounded-full" />
+                </div>
+                <Skeleton className="h-8 w-20 rounded-full" />
+              </div>
+            </Card>
+          ))}
+        </div>
       ) : categories.length === 0 ? (
-        <div className="p-8 text-center text-gray-400">ยังไม่มีหมวดหมู่</div>
+        <EmptyState message="ยังไม่มีหมวดหมู่" />
       ) : (
         <div className="space-y-3">
           {categories.map((category) => {
@@ -88,183 +124,187 @@ const ServicesPage = () => {
             const isExpanded = expandedCategory === category.id;
 
             return (
-              <div
-                key={category.id}
-                className="bg-white rounded-lg shadow-sm overflow-hidden"
-              >
+              <Card key={category.id} className="overflow-hidden">
                 <div
-                  className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() =>
                     setExpandedCategory(isExpanded ? null : category.id)
                   }
                 >
                   <div className="flex items-center gap-3">
                     {isExpanded ? (
-                      <ChevronDown size={18} className="text-gray-400" />
+                      <ChevronDown size={18} className="text-muted-foreground" />
                     ) : (
-                      <ChevronRight size={18} className="text-gray-400" />
+                      <ChevronRight size={18} className="text-muted-foreground" />
                     )}
-                    <span className="font-medium text-gray-800">
-                      {category.name}
-                    </span>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                    <span className="font-medium">{category.name}</span>
+                    <Badge variant="secondary" className="text-xs">
                       {categoryServices.length} รายการ
-                    </span>
+                    </Badge>
                   </div>
-                  <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      deleteCategoryMutation.mutate(category.id);
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmCategory(category);
                     }}
-                    className="text-red-400 hover:text-red-600 text-xs px-2 py-1 hover:bg-red-50 rounded"
                   >
                     ปิดหมวดหมู่
-                  </button>
+                  </Button>
                 </div>
 
                 {isExpanded && (
-                  <div className="border-t">
+                  <div className="border-t border-border">
                     {categoryServices.length === 0 ? (
-                      <div className="px-6 py-4 text-sm text-gray-400">
+                      <p className="px-6 py-4 text-sm text-muted-foreground">
                         ยังไม่มีหัตถการในหมวดนี้
-                      </div>
+                      </p>
                     ) : (
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
-                          <tr className="text-left text-gray-500">
-                            <th className="px-6 py-3 font-medium">
-                              ชื่อหัตถการ
-                            </th>
-                            <th className="px-6 py-3 font-medium">ระยะเวลา</th>
-                            <th className="px-6 py-3 font-medium">ราคา</th>
-                            <th className="px-6 py-3 font-medium">สถานะ</th>
-                            <th className="px-6 py-3 font-medium"></th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {categoryServices.map((service) => (
-                            <tr key={service.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-3 text-gray-800">
-                                {service.name}
-                              </td>
-                              <td className="px-6 py-3 text-gray-500">
-                                {service.duration} นาที
-                              </td>
-                              <td className="px-6 py-3 text-gray-500">
-                                {service.price ? `${service.price} ฿` : "-"}
-                              </td>
-                              <td className="px-6 py-3">
-                                <span
-                                  className={`px-2 py-1 rounded-full text-xs font-medium ${service.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                                >
-                                  {service.isActive ? "เปิด" : "ปิด"}
-                                </span>
-                              </td>
-                              <td className="px-6 py-3">
-                                <button
-                                  onClick={() =>
-                                    deleteServiceMutation.mutate(service.id)
-                                  }
-                                  className="text-red-400 hover:text-red-600 text-xs"
-                                >
-                                  ปิด
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <DataGrid
+                        rows={categoryServices}
+                        columns={[
+                          { field: "name", headerName: "ชื่อหัตถการ", flex: 1 },
+                          { field: "duration", headerName: "ระยะเวลา", width: 120, valueGetter: (v) => `${v} นาที` },
+                          { field: "price", headerName: "ราคา", width: 120, valueGetter: (v) => v ? `฿${formatCurrency(v)}` : "-" },
+                          {
+                            field: "isActive",
+                            headerName: "สถานะ",
+                            width: 90,
+                            renderCell: (params) => (
+                              <StatusBadge
+                                status={params.row.isActive ? "ACTIVE" : "INACTIVE"}
+                                label={params.row.isActive ? "เปิด" : "ปิด"}
+                              />
+                            ),
+                          },
+                          {
+                            field: "actions",
+                            headerName: "",
+                            width: 70,
+                            sortable: false,
+                            renderCell: (params) => (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmService(params.row);
+                                }}
+                              >
+                                ปิด
+                              </Button>
+                            ),
+                          },
+                        ]}
+                        autoHeight
+                        hideFooter
+                        sx={datagridSx}
+                      />
                     )}
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
       )}
 
-      {showCategoryForm && (
-        <CategoryForm
-          onClose={() => setShowCategoryForm(false)}
-          onSubmit={(data) => createCategoryMutation.mutate(data)}
-          isLoading={createCategoryMutation.isPending}
-          error={createCategoryMutation.error?.response?.data?.message}
-        />
-      )}
+      <CategoryForm
+        open={showCategoryForm}
+        onClose={() => setShowCategoryForm(false)}
+        onSubmit={(data) => createCategoryMutation.mutate(data)}
+        isLoading={createCategoryMutation.isPending}
+        error={createCategoryMutation.error?.response?.data?.message}
+      />
 
-      {showServiceForm && (
-        <ServiceForm
-          onClose={() => setShowServiceForm(false)}
-          onSubmit={(data) => createServiceMutation.mutate(data)}
-          isLoading={createServiceMutation.isPending}
-          error={createServiceMutation.error?.response?.data?.message}
-          categories={categories}
-        />
-      )}
+      <ServiceForm
+        open={showServiceForm}
+        onClose={() => setShowServiceForm(false)}
+        onSubmit={(data) => createServiceMutation.mutate(data)}
+        isLoading={createServiceMutation.isPending}
+        error={createServiceMutation.error?.response?.data?.message}
+        categories={categories}
+      />
+
+      <ConfirmDialog
+        open={!!confirmCategory}
+        onClose={() => setConfirmCategory(null)}
+        onConfirm={() => { deleteCategoryMutation.mutate(confirmCategory.id); setConfirmCategory(null); }}
+        title="ยืนยันการปิดหมวดหมู่"
+        description={confirmCategory ? `ต้องการปิดหมวดหมู่ "${confirmCategory.name}" หรือไม่?` : ""}
+        confirmLabel="ปิดหมวดหมู่"
+        isLoading={deleteCategoryMutation.isPending}
+      />
+
+      <ConfirmDialog
+        open={!!confirmService}
+        onClose={() => setConfirmService(null)}
+        onConfirm={() => { deleteServiceMutation.mutate(confirmService.id); setConfirmService(null); }}
+        title="ยืนยันการปิดหัตถการ"
+        description={confirmService ? `ต้องการปิดหัตถการ "${confirmService.name}" หรือไม่?` : ""}
+        confirmLabel="ปิดหัตถการ"
+        isLoading={deleteServiceMutation.isPending}
+      />
     </div>
   );
 };
 
-const CategoryForm = ({ onClose, onSubmit, isLoading, error }) => {
+const CategoryForm = ({ open, onClose, onSubmit, isLoading, error }) => {
   const [name, setName] = useState("");
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
     onSubmit({ name });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">เพิ่มหมวดหมู่</h2>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>เพิ่มหมวดหมู่</DialogTitle>
+        </DialogHeader>
 
         {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
+          <div className="rounded-md bg-destructive/10 text-destructive text-sm p-3">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              ชื่อหมวดหมู่ *
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="cat-name">ชื่อหมวดหมู่ *</Label>
+            <Input
+              id="cat-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="เช่น ฟิลเลอร์ โบท็อกซ์"
               required
             />
           </div>
+
           <div className="flex gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 rounded px-4 py-2 text-sm hover:bg-gray-50"
             >
               ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-const ServiceForm = ({ onClose, onSubmit, isLoading, error, categories }) => {
+const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) => {
   const [form, setForm] = useState({
     name: "",
     categoryId: "",
@@ -273,12 +313,12 @@ const ServiceForm = ({ onClose, onSubmit, isLoading, error, categories }) => {
     description: "",
   });
 
-  const handleChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value });
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleSubmit = (e) => {
+    e.preventDefault();
     onSubmit({
       ...form,
       categoryId: Number(form.categoryId),
@@ -288,111 +328,101 @@ const ServiceForm = ({ onClose, onSubmit, isLoading, error, categories }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">เพิ่มหัตถการ</h2>
-          <button onClick={onClose}>
-            <X size={20} className="text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>เพิ่มหัตถการ</DialogTitle>
+        </DialogHeader>
 
         {error && (
-          <div className="bg-red-50 text-red-500 p-3 rounded mb-4 text-sm">
+          <div className="rounded-md bg-destructive/10 text-destructive text-sm p-3">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">หมวดหมู่ *</label>
-            <select
-              name="categoryId"
+          <div className="space-y-1.5">
+            <Label htmlFor="svc-cat">หมวดหมู่ *</Label>
+            <Select
               value={form.categoryId}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onValueChange={(v) => setForm({ ...form, categoryId: v })}
               required
             >
-              <option value="">เลือกหมวดหมู่</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="svc-cat" className="w-full">
+                <SelectValue placeholder="เลือกหมวดหมู่" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              ชื่อหัตถการ *
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="svc-name">ชื่อหัตถการ *</Label>
+            <Input
+              id="svc-name"
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                ระยะเวลา (นาที) *
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="svc-dur">ระยะเวลา (นาที) *</Label>
+              <Input
+                id="svc-dur"
                 type="number"
                 name="duration"
                 value={form.duration}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                ราคา (บาท)
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="svc-price">ราคา (บาท)</Label>
+              <Input
+                id="svc-price"
                 type="number"
                 name="price"
                 value={form.price}
                 onChange={handleChange}
-                className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">รายละเอียด</label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label htmlFor="svc-desc">รายละเอียด</Label>
+            <Textarea
+              id="svc-desc"
               name="description"
               value={form.description}
               onChange={handleChange}
               rows={2}
-              className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="flex gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              className="flex-1"
               onClick={onClose}
-              className="flex-1 border rounded px-4 py-2 text-sm hover:bg-gray-50"
             >
               ยกเลิก
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="flex-1 bg-blue-500 text-white rounded px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
