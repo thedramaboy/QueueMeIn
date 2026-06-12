@@ -4,20 +4,24 @@ import { reportService } from "../../services/report.service";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { CalendarDays, Users, UserCheck, UserPlus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DataGrid } from "@mui/x-data-grid";
+import PageHeader from "@/components/shared/PageHeader";
+import EmptyState from "@/components/shared/EmptyState";
+import TableSkeleton, { StatCardSkeleton } from "@/components/shared/TableSkeleton";
+import { datagridSx } from "@/lib/datagrid";
 
 const MONTHS = [
-  "มกราคม",
-  "กุมภาพันธ์",
-  "มีนาคม",
-  "เมษายน",
-  "พฤษภาคม",
-  "มิถุนายน",
-  "กรกฎาคม",
-  "สิงหาคม",
-  "กันยายน",
-  "ตุลาคม",
-  "พฤศจิกายน",
-  "ธันวาคม",
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+  "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+  "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
 ];
 
 const STATUS_LABEL = {
@@ -28,6 +32,20 @@ const STATUS_LABEL = {
   NO_SHOW: "ไม่มา",
   RESCHEDULED: "เลื่อนนัด",
 };
+
+const StatCard = ({ label, value, icon: Icon, iconClassName }) => (
+  <Card>
+    <CardContent className="flex items-center gap-4 p-6">
+      <div className={`p-3 rounded-full ${iconClassName}`}>
+        <Icon size={24} className="text-white" />
+      </div>
+      <div>
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-2xl font-bold">{value}</p>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 const ReportsPage = () => {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -47,42 +65,50 @@ const ReportsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1>รายงาน</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {MONTHS[month - 1]} {year + 543}
-          </p>
-        </div>
+      <PageHeader
+        title="รายงาน"
+        subtitle={`${MONTHS[month - 1]} ${year + 543}`}
+        action={
+          <div className="flex gap-2">
+            <Select
+              value={String(month)}
+              onValueChange={(v) => setMonth(Number(v))}
+            >
+              <SelectTrigger className="w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <div className="flex gap-2">
-          <select
-            value={month}
-            onChange={(event) => setMonth(Number(event.target.value))}
-            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {MONTHS.map((month, index) => (
-              <option key={index + 1} value={index + 1}>
-                {month}
-              </option>
-            ))}
-          </select>
-          <select
-            value={year}
-            onChange={(event) => setYear(Number(event.target.value))}
-            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[2026, 2027, 2028].map((year) => (
-              <option key={year} value={year}>
-                {year + 543}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+            <Select
+              value={String(year)}
+              onValueChange={(v) => setYear(Number(v))}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2026, 2027, 2028].map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y + 543}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       {loadingSummary ? (
-        <div className="p-8 text-center text-gray-400">กำลังโหลด...</div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)}
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -90,19 +116,19 @@ const ReportsPage = () => {
               label="การจองทั้งหมด"
               value={summary?.totalBookings || 0}
               icon={CalendarDays}
-              color="bg-blue-500"
+              iconClassName="bg-primary"
             />
             <StatCard
               label="ลูกค้าใหม่"
               value={summary?.newPatients || 0}
               icon={UserPlus}
-              color="bg-green-500"
+              iconClassName="bg-green-600"
             />
             <StatCard
               label="ลูกค้าเก่ากลับมา"
               value={summary?.returningPatients || 0}
               icon={UserCheck}
-              color="bg-purple-500"
+              iconClassName="bg-accent"
             />
             <StatCard
               label="ลูกค้าทั้งหมด"
@@ -110,135 +136,119 @@ const ReportsPage = () => {
                 (summary?.newPatients || 0) + (summary?.returningPatients || 0)
               }
               icon={Users}
-              color="bg-yellow-500"
+              iconClassName="bg-amber-500"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="font-semibold text-gray-700 mb-4">
-                การจองแยกตามสถานะ
-              </h2>
-              <div className="space-y-3">
-                {summary?.bookingsByStatus?.map((item) => (
-                  <div
-                    key={item.status}
-                    className="flex justify-between items-center"
-                  >
-                    <span className="text-sm text-gray-600">
-                      {STATUS_LABEL[item.status] || item.status}
-                    </span>
-                    <span className="font-semibold text-gray-800">
-                      {item.count} ครั้ง
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-base font-semibold mb-4">การจองแยกตามสถานะ</p>
+                <div className="space-y-3">
+                  {summary?.bookingsByStatus?.map((item) => (
+                    <div
+                      key={item.status}
+                      className="flex justify-between items-center"
+                    >
+                      <span className="text-sm text-muted-foreground">
+                        {STATUS_LABEL[item.status] || item.status}
+                      </span>
+                      <span className="font-semibold">{item.count} ครั้ง</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="font-semibold text-gray-700 mb-4">
-                การจองแยกตามสาขา
-              </h2>
-              <div className="space-y-3">
-                {summary?.bookingsByBranch?.map((item) => (
-                  <div
-                    key={item.branch}
-                    className="flex justify-between items-center"
-                  >
-                    <span className="text-sm text-gray-600">{item.branch}</span>
-                    <span className="font-semibold text-gray-800">
-                      {item.count} ครั้ง
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-base font-semibold mb-4">การจองแยกตามสาขา</p>
+                <div className="space-y-3">
+                  {summary?.bookingsByBranch?.map((item) => (
+                    <div
+                      key={item.branch}
+                      className="flex justify-between items-center"
+                    >
+                      <span className="text-sm text-muted-foreground">
+                        {item.branch}
+                      </span>
+                      <span className="font-semibold">{item.count} ครั้ง</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="font-semibold text-gray-700 mb-4">ลูกค้าใหม่เดือนนี้</h2>
-        {loadingPatients ? (
-          <div className="text-center text-gray-400 py-4">กำลังโหลด...</div>
-        ) : patientsReport?.newPatients?.length === 0 ? (
-          <div className="text-center text-gray-400 py-4">ไม่มีลูกค้าใหม่</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-left text-gray-500">
-                <th className="px-4 py-3 font-medium">ชื่อ</th>
-                <th className="px-4 py-3 font-medium">เบอร์โทร</th>
-                <th className="px-4 py-3 font-medium">
-                  วันที่สมัครเข้ารับบริการ
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {patientsReport?.newPatients?.map((patient) => (
-                <tr key={patient.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-800">
-                    {patient.firstName} {patient.lastName} {patient.nickname}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{patient.phone}</td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {format(new Date(patient.createdAt), "dd MMM yyyy", {
-                      locale: th,
-                    })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">ลูกค้าใหม่เดือนนี้</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loadingPatients ? (
+            <TableSkeleton cols={3} rows={3} />
+          ) : !patientsReport?.newPatients?.length ? (
+            <EmptyState message="ไม่มีลูกค้าใหม่" />
+          ) : (
+            <DataGrid
+              rows={patientsReport.newPatients}
+              columns={[
+                {
+                  field: "fullName",
+                  headerName: "ชื่อ",
+                  flex: 1,
+                  valueGetter: (_, row) =>
+                    `${row.firstName} ${row.lastName}${row.nickname ? ` (${row.nickname})` : ""}`,
+                },
+                { field: "phone", headerName: "เบอร์โทร", width: 140 },
+                {
+                  field: "createdAt",
+                  headerName: "วันที่สมัคร",
+                  width: 150,
+                  valueGetter: (v) => format(new Date(v), "dd MMM yyyy", { locale: th }),
+                },
+              ]}
+              autoHeight
+              hideFooter
+              sx={datagridSx}
+            />
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="font-semibold text-gray-700 mb-4">
-          ลูกค้าเก่าที่กลับมาเดือนนี้
-        </h2>
-        {loadingPatients ? (
-          <div className="text-center text-gray-400 py-4">กำลังโหลด...</div>
-        ) : patientsReport?.returningPatients?.length === 0 ? (
-          <div className="text-center text-gray-400 py-4">
-            ไม่มีลูกค้าเก่าในเดือนนี้
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-left text-gray-500">
-                <th className="px-4 py-3 font-medium">ชื่อ</th>
-                <th className="px-4 py-3 font-medium">เบอร์โทร</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {patientsReport?.returningPatients?.map((patient, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-800">
-                    {patient.firstName} {patient.lastName} {patient.nickname}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{patient.phone}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">ลูกค้าเก่าที่กลับมาเดือนนี้</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loadingPatients ? (
+            <TableSkeleton cols={2} rows={3} />
+          ) : !patientsReport?.returningPatients?.length ? (
+            <EmptyState message="ไม่มีลูกค้าเก่าในเดือนนี้" />
+          ) : (
+            <DataGrid
+              rows={patientsReport.returningPatients.map((p, i) => ({ ...p, id: p.id ?? i }))}
+              columns={[
+                {
+                  field: "fullName",
+                  headerName: "ชื่อ",
+                  flex: 1,
+                  valueGetter: (_, row) =>
+                    `${row.firstName} ${row.lastName}${row.nickname ? ` (${row.nickname})` : ""}`,
+                },
+                { field: "phone", headerName: "เบอร์โทร", width: 140 },
+              ]}
+              autoHeight
+              hideFooter
+              sx={datagridSx}
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
-
-const StatCard = ({ label, value, icon: Icon, color }) => (
-  <div className="bg-white rounded-lg shadow-sm p-6 flex items-center gap-4">
-    <div className={`p-3 rounded-full ${color}`}>
-      <Icon size={24} className="text-white" />
-    </div>
-    <div>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-700">{value}</p>
-    </div>
-  </div>
-);
 
 export default ReportsPage;
