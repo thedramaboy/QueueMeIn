@@ -5,16 +5,9 @@ import Sidebar from "./Sidebar.jsx";
 const Layout = () => {
   const [collapsed, setCollapsed] = useState(false);
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed(!collapsed)}
-      />
-
+    <div className="flex h-screen bg-muted">
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       <main className="flex-1 overflow-y-auto">
-        <div className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-700">ระบบจองคลินิก</h2>
-        </div>
         <div className="p-6">
           <Outlet />
         </div>
