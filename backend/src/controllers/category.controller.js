@@ -32,28 +32,29 @@ export const createCategory = async (req, res) => {
   try {
     const { name } = req.body;
 
-    const existing = await prisma.category.findUnique({
-      where: { name },
-    });
+    const existing = await prisma.category.findUnique({ where: { name } });
+
     if (existing) {
-      logger.warn("Create category failed - already exists", { name });
-      return res
-        .status(400)
-        .json({ message: "ชื่อ Category นี้มีอยู่ในระบบแล้ว" });
+      if (existing.isActive) {
+        logger.warn("Create category failed - already exists", { name });
+        return res.status(400).json({ message: "ชื่อ Category นี้มีอยู่ในระบบแล้ว" });
+      }
+      const category = await prisma.category.update({
+        where: { id: existing.id },
+        data: { isActive: true },
+      });
+      logger.info("Reactivated category", { categoryId: category.id, name, requestedBy: req.user.id });
+      return res.status(201).json({ message: "สร้าง Category เรียบร้อยแล้ว", category });
     }
 
-    const category = await prisma.category.create({
-      data: { name },
-    });
+    const category = await prisma.category.create({ data: { name } });
 
     logger.info("Create category success", {
       categoryId: category.id,
       name: category.name,
       requestedBy: req.user.id,
     });
-    res.status(201).json({
-      message: "สร้าง Category เรียบร้อยแล้ว",
-    });
+    res.status(201).json({ message: "สร้าง Category เรียบร้อยแล้ว", category });
   } catch (error) {
     logger.error("Create category error", {
       error: error.message,
