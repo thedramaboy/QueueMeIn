@@ -264,6 +264,58 @@ export const updateBookingStatus = async (req, res) => {
   }
 };
 
+export const updateBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { doctorId, branchId, serviceId, date, startTime, deposit, note } = req.body;
+
+    const existing = await prisma.booking.findUnique({ where: { id: Number(id) } });
+    if (!existing) {
+      return res.status(404).json({ message: "ไม่พบการจอง" });
+    }
+
+    const service = await prisma.service.findUnique({ where: { id: Number(serviceId) } });
+    if (!service) {
+      return res.status(404).json({ message: "ไม่พบบริการที่ต้องการเลือก" });
+    }
+
+    const endTime = calculateEndTime(startTime, service.duration);
+
+    const available = await isSlotAvailable(prisma, {
+      doctorId: Number(doctorId),
+      branchId: Number(branchId),
+      date,
+      startTime,
+      endTime,
+      excludeBookingId: Number(id),
+    });
+    if (!available) {
+      return res.status(400).json({ message: "เวลานี้มีการจองในระบบแล้ว กรุณาเลือกเวลาอื่น" });
+    }
+
+    const booking = await prisma.booking.update({
+      where: { id: Number(id) },
+      data: {
+        doctorId: Number(doctorId),
+        branchId: Number(branchId),
+        serviceId: Number(serviceId),
+        date: new Date(date),
+        startTime,
+        endTime,
+        deposit: deposit ?? null,
+        note: note ?? null,
+      },
+      include: { patient: true, doctor: true, branch: true, service: true },
+    });
+
+    logger.info("Update booking success", { bookingId: id, requestedBy: req.user.id });
+    res.json({ message: "อัปเดตการจองสำเร็จ", booking });
+  } catch (error) {
+    logger.error("Update booking error", { bookingId: req.params.id, error: error.message });
+    res.status(500).json({ message: "ไม่สามารถอัปเดตการจองได้", error: error.message });
+  }
+};
+
 export const rescheduleBooking = async (req, res) => {
   try {
     const { id } = req.params;

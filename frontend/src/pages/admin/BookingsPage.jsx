@@ -7,7 +7,8 @@ import { patientService } from "../../services/patient.service.js";
 import { doctorService } from "../../services/doctor.service.js";
 import { branchService } from "../../services/branch.service.js";
 import { serviceService } from "../../services/service.service.js";
-import { Plus, Search } from "lucide-react";
+import { toast } from "sonner";
+import { Plus, Search, Pencil } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,7 @@ const BookingsPage = () => {
   const [calDate, setCalDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null);
 
   const date = format(calDate, "yyyy-MM-dd");
 
@@ -129,8 +131,23 @@ const BookingsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setShowForm(false);
+      toast.success("สร้างการจองสำเร็จ");
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => bookingService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setEditing(null);
+      toast.success("อัปเดตการจองสำเร็จ");
+    },
+  });
+
+  const formOpen = showForm || !!editing;
+  const formError =
+    createMutation.error?.response?.data?.message ||
+    updateMutation.error?.response?.data?.message;
 
   return (
     <div className="space-y-6">
@@ -187,17 +204,27 @@ const BookingsPage = () => {
       </div>
 
       <BookingForm
-        open={showForm}
-        onClose={() => setShowForm(false)}
-        onSubmit={(data) => createMutation.mutate(data)}
-        isLoading={createMutation.isPending}
-        error={createMutation.error?.response?.data?.message}
+        key={editing?.id ?? "create"}
+        open={formOpen}
+        onClose={() => { setShowForm(false); setEditing(null); }}
+        onSubmit={(data) => {
+          if (editing) {
+            const { patientId, ...updateData } = data;
+            updateMutation.mutate({ id: editing.id, data: updateData });
+          } else {
+            createMutation.mutate(data);
+          }
+        }}
+        isLoading={createMutation.isPending || updateMutation.isPending}
+        error={formError}
         defaultDate={date}
+        booking={editing}
       />
 
       <BookingDetail
         booking={selected}
         onClose={() => setSelected(null)}
+        onEdit={() => { setEditing(selected); setSelected(null); }}
         onStatusChange={(status) => {
           statusMutation.mutate({ id: selected.id, status });
           setSelected(null);
@@ -207,20 +234,24 @@ const BookingsPage = () => {
   );
 };
 
-const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate }) => {
+const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, booking }) => {
+  const isEdit = !!booking;
   const [form, setForm] = useState({
-    patientId: "",
-    doctorId: "",
-    branchId: "",
-    serviceId: "",
-    date: defaultDate,
-    startTime: "",
-    deposit: "",
-    note: "",
+    patientId: booking ? String(booking.patientId) : "",
+    doctorId: booking ? String(booking.doctorId) : "",
+    branchId: booking ? String(booking.branchId) : "",
+    serviceId: booking ? String(booking.serviceId) : "",
+    date: booking ? format(new Date(booking.date), "yyyy-MM-dd") : defaultDate,
+    startTime: booking?.startTime ?? "",
+    deposit: booking?.deposit != null ? String(booking.deposit) : "",
+    note: booking?.note ?? "",
   });
 
-  const [patientSearch, setPatientSearch] = useState("");
-  const [patientDisplay, setPatientDisplay] = useState("");
+  const patientLabel = booking
+    ? `${booking.patient?.nickname || booking.patient?.firstName} ${booking.patient?.lastName} (${booking.patient?.phone})`
+    : "";
+  const [patientSearch, setPatientSearch] = useState(patientLabel);
+  const [patientDisplay, setPatientDisplay] = useState(patientLabel);
   const [patientPopoverOpen, setPatientPopoverOpen] = useState(false);
 
   const { data: patients = [] } = useQuery({
@@ -262,7 +293,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate })
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>จองคิวใหม่</DialogTitle>
+          <DialogTitle>{isEdit ? "แก้ไขการจอง" : "จองคิวใหม่"}</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -275,56 +306,57 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate })
           {/* Patient search combobox */}
           <div className="space-y-1.5">
             <Label>ค้นหาลูกค้า *</Label>
-            <Popover
-              open={patientPopoverOpen}
-              onOpenChange={setPatientPopoverOpen}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  className="w-full justify-between font-normal"
-                >
-                  {patientDisplay || "พิมพ์ชื่อหรือเบอร์โทร"}
-                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0" align="start">
-                <Command>
-                  <CommandInput
-                    placeholder="ค้นหาลูกค้า..."
-                    value={patientSearch}
-                    onValueChange={(v) => {
-                      setPatientSearch(v);
-                      setForm((f) => ({ ...f, patientId: "" }));
-                    }}
-                  />
-                  <CommandList>
-                    <CommandEmpty>ไม่พบลูกค้า</CommandEmpty>
-                    <CommandGroup>
-                      {patients.map((p) => (
-                        <CommandItem
-                          key={p.id}
-                          value={`${p.firstName} ${p.lastName} ${p.phone}`}
-                          onSelect={() => {
-                            setForm((f) => ({ ...f, patientId: p.id }));
-                            setPatientDisplay(
-                              `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
-                            );
-                            setPatientSearch(
-                              `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
-                            );
-                            setPatientPopoverOpen(false);
-                          }}
-                        >
-                          {p.nickname || p.firstName} {p.lastName} – {p.phone}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            {isEdit ? (
+              <Input value={patientDisplay} disabled className="bg-muted" />
+            ) : (
+              <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    {patientDisplay || "พิมพ์ชื่อหรือเบอร์โทร"}
+                    <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="ค้นหาลูกค้า..."
+                      value={patientSearch}
+                      onValueChange={(v) => {
+                        setPatientSearch(v);
+                        setForm((f) => ({ ...f, patientId: "" }));
+                      }}
+                    />
+                    <CommandList>
+                      <CommandEmpty>ไม่พบลูกค้า</CommandEmpty>
+                      <CommandGroup>
+                        {patients.map((p) => (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.firstName} ${p.lastName} ${p.phone}`}
+                            onSelect={() => {
+                              setForm((f) => ({ ...f, patientId: p.id }));
+                              setPatientDisplay(
+                                `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
+                              );
+                              setPatientSearch(
+                                `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
+                              );
+                              setPatientPopoverOpen(false);
+                            }}
+                          >
+                            {p.nickname || p.firstName} {p.lastName} – {p.phone}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -439,7 +471,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate })
   );
 };
 
-const BookingDetail = ({ booking, onClose, onStatusChange }) => {
+const BookingDetail = ({ booking, onClose, onEdit, onStatusChange }) => {
   const statuses = [
     { value: "CONFIRMED",  label: "ยืนยันนัด" },
     { value: "COMPLETED",  label: "เสร็จแล้ว" },
@@ -513,9 +545,15 @@ const BookingDetail = ({ booking, onClose, onStatusChange }) => {
               </div>
             </div>
 
-            <Button className="w-full" onClick={onClose}>
-              ปิด
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={onEdit}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                แก้ไข
+              </Button>
+              <Button className="flex-1" onClick={onClose}>
+                ปิด
+              </Button>
+            </div>
           </>
         )}
       </DialogContent>

@@ -6,6 +6,8 @@ export const bookingService = {
   create: (data) => api.post("/bookings", data).then((res) => res.data),
   updateStatus: (id, status) =>
     api.patch(`/bookings/${id}/status`, { status }).then((res) => res.data),
+  update: (id, data) =>
+    api.patch(`/bookings/${id}`, data).then((res) => res.data),
   reschedule: (id, data) =>
     api.post(`/bookings/${id}/reschedule`, data).then((res) => res.data),
 };
