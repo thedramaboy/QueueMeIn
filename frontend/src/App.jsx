@@ -24,7 +24,7 @@ const AdminRoute = ({ children }) => {
   const { token, user } = useAuthStore();
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return null;
-  if (user.role !== "ADMIN") return <Navigate to="/dashboard" replace />;
+  if (user.role !== "ADMIN" && user.role !== "SUPERUSER") return <Navigate to="/dashboard" replace />;
   return children;
 };
 
@@ -73,7 +73,7 @@ const App = () => {
           <Route path="doctors" element={<AdminRoute><DoctorsPage /></AdminRoute>} />
           <Route path="branches" element={<AdminRoute><BranchesPage /></AdminRoute>} />
           <Route path="reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
-          <Route path="schedules" element={<AdminRoute><SchedulesPage /></AdminRoute>} />
+          <Route path="schedules" element={<ProtectedRoute><SchedulesPage /></ProtectedRoute>} />
           <Route path="services" element={<AdminRoute><ServicesPage /></AdminRoute>} />
           <Route path="users" element={<AdminRoute><UsersPage /></AdminRoute>} />
         </Route>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useAuthStore from "../../stores/auth.store.js";
 import { scheduleService } from "../../services/schedule.service.js";
 import { doctorService } from "../../services/doctor.service.js";
 import { branchService } from "../../services/branch.service.js";
@@ -60,6 +61,8 @@ const getBlockStyle = (schedule) => {
 
 const SchedulesPage = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const isStaff = user?.role === "STAFF";
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [filterBranch, setFilterBranch] = useState("all");
@@ -111,10 +114,12 @@ const SchedulesPage = () => {
         title="ตารางเวลา"
         subtitle={`ทั้งหมด ${schedules.length} รายการ`}
         action={
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            เพิ่มตาราง
-          </Button>
+          !isStaff && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              เพิ่มตาราง
+            </Button>
+          )
         }
       />
 
@@ -272,6 +277,7 @@ const SchedulesPage = () => {
         schedule={selected}
         onClose={() => setSelected(null)}
         onDelete={() => deleteMutation.mutate(selected.id)}
+        readOnly={isStaff}
       />
     </div>
   );
@@ -445,7 +451,7 @@ const ScheduleForm = ({
   );
 };
 
-const ScheduleDetail = ({ schedule, onClose, onDelete }) => {
+const ScheduleDetail = ({ schedule, onClose, onDelete, readOnly }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   return (
     <>
@@ -475,13 +481,15 @@ const ScheduleDetail = ({ schedule, onClose, onDelete }) => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={() => setConfirmOpen(true)}
-                >
-                  ปิดตาราง
-                </Button>
+                {!readOnly && (
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => setConfirmOpen(true)}
+                  >
+                    ปิดตาราง
+                  </Button>
+                )}
                 <Button className="flex-1" onClick={onClose}>
                   ปิด
                 </Button>

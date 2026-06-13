@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Shield, UserRound } from "lucide-react";
+import { Plus, Shield, UserRound, Crown } from "lucide-react";
+import useAuthStore from "../../stores/auth.store.js";
 import { userService } from "../../services/user.service.js";
 import { branchService } from "../../services/branch.service.js";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,16 +32,23 @@ import EmptyState from "@/components/shared/EmptyState";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { datagridSx } from "@/lib/datagrid";
 
-const RoleBadge = ({ role }) =>
-  role === "ADMIN" ? (
-    <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10 gap-1">
-      <Shield className="h-3 w-3" /> Owner
+const RoleBadge = ({ role }) => {
+  if (role === "SUPERUSER") return (
+    <Badge className="bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-100 gap-1">
+      <Crown className="h-3 w-3" /> Superuser
     </Badge>
-  ) : (
+  );
+  if (role === "ADMIN") return (
+    <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10 gap-1">
+      <Shield className="h-3 w-3" /> Admin
+    </Badge>
+  );
+  return (
     <Badge variant="secondary" className="gap-1">
       <UserRound className="h-3 w-3" /> Staff
     </Badge>
   );
+};
 
 const columns = [
   { field: "name", headerName: "ชื่อ", flex: 1 },
@@ -72,6 +80,7 @@ const columns = [
 
 const UsersPage = () => {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuthStore();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
 
@@ -138,6 +147,7 @@ const UsersPage = () => {
         onSubmit={(data) => createMutation.mutate(data)}
         isLoading={createMutation.isPending}
         error={createMutation.error?.response?.data?.message}
+        currentUserRole={currentUser?.role}
       />
 
       <UserDetail
@@ -152,7 +162,7 @@ const UsersPage = () => {
   );
 };
 
-const UserForm = ({ open, onClose, onSubmit, isLoading, error }) => {
+const UserForm = ({ open, onClose, onSubmit, isLoading, error, currentUserRole }) => {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -239,7 +249,9 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error }) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="STAFF">Staff</SelectItem>
-                  <SelectItem value="ADMIN">Owner</SelectItem>
+                  {currentUserRole === "SUPERUSER" && (
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
