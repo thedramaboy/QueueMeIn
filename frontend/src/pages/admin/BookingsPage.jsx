@@ -8,7 +8,7 @@ import { doctorService } from "../../services/doctor.service.js";
 import { branchService } from "../../services/branch.service.js";
 import { serviceService } from "../../services/service.service.js";
 import { toast } from "sonner";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, X } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,18 +107,43 @@ const BookingSlot = ({ booking, onClick }) => (
   </button>
 );
 
+const STATUSES = [
+  { value: "PENDING",   label: "รอยืนยัน" },
+  { value: "CONFIRMED", label: "ยืนยันแล้ว" },
+  { value: "COMPLETED", label: "เสร็จสิ้น" },
+  { value: "CANCELLED", label: "ยกเลิก" },
+  { value: "NO_SHOW",   label: "ไม่มา" },
+];
+
 const BookingsPage = () => {
   const queryClient = useQueryClient();
   const [calDate, setCalDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [filters, setFilters] = useState({ branchId: "", doctorId: "", status: "" });
 
   const date = format(calDate, "yyyy-MM-dd");
+  const hasFilter = filters.branchId || filters.doctorId || filters.status;
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches"],
+    queryFn: branchService.getAll,
+  });
+
+  const { data: doctors = [] } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: doctorService.getAll,
+  });
 
   const { data: bookings = [], isLoading } = useQuery({
-    queryKey: ["bookings", date],
-    queryFn: () => bookingService.getAll({ date }),
+    queryKey: ["bookings", date, filters.branchId, filters.doctorId, filters.status],
+    queryFn: () => bookingService.getAll({
+      date,
+      ...(filters.branchId && { branchId: filters.branchId }),
+      ...(filters.doctorId && { doctorId: filters.doctorId }),
+      ...(filters.status   && { status: filters.status }),
+    }),
   });
 
   const statusMutation = useMutation({
@@ -181,9 +206,68 @@ const BookingsPage = () => {
           </p>
         </div>
 
-        {/* Right: Booking slots */}
+        {/* Right: Filter bar + Booking slots */}
         <div className="flex-1 min-w-0 max-w-lg">
-          <ScrollArea className="h-[calc(100vh-220px)]">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <Select
+              value={filters.branchId || "all"}
+              onValueChange={(v) => setFilters((f) => ({ ...f, branchId: v === "all" ? "" : v }))}
+            >
+              <SelectTrigger className="h-8 w-36 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสาขา</SelectItem>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.doctorId || "all"}
+              onValueChange={(v) => setFilters((f) => ({ ...f, doctorId: v === "all" ? "" : v }))}
+            >
+              <SelectTrigger className="h-8 w-44 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกหมอ</SelectItem>
+                {doctors.map((d) => (
+                  <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.status || "all"}
+              onValueChange={(v) => setFilters((f) => ({ ...f, status: v === "all" ? "" : v }))}
+            >
+              <SelectTrigger className="h-8 w-32 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">ทุกสถานะ</SelectItem>
+                {STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {hasFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-muted-foreground"
+                onClick={() => setFilters({ branchId: "", doctorId: "", status: "" })}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                ล้าง
+              </Button>
+            )}
+          </div>
+
+          <ScrollArea className="h-[calc(100vh-260px)]">
             <div className="space-y-2 pr-4">
               {isLoading ? (
                 Array.from({ length: 4 }, (_, i) => <BookingSlotSkeleton key={i} />)
@@ -272,7 +356,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
-    queryFn: serviceService.getAll,
+    queryFn: () => serviceService.getAll(),
   });
 
   const handleSubmit = (e) => {
