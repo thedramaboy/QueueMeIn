@@ -15,8 +15,8 @@ const router = Router();
 
 router.get("/", auth, getSchedules);
 router.get("/:id", auth, getSchedule);
-router.post("/", auth, allowRoles("OWNER"),validate(createScheduleSchema), createSchedule);
-router.put("/:id", auth, allowRoles("OWNER"), validate(updateScheduleSchema), updateSchedule);
-router.delete("/:id", auth, allowRoles("OWNER"), deleteSchedule);
+router.post("/", auth, allowRoles("ADMIN"),validate(createScheduleSchema), createSchedule);
+router.put("/:id", auth, allowRoles("ADMIN"), validate(updateScheduleSchema), updateSchedule);
+router.delete("/:id", auth, allowRoles("ADMIN"), deleteSchedule);
 
 export default router;

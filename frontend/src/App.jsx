@@ -20,11 +20,11 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-const OwnerRoute = ({ children }) => {
+const AdminRoute = ({ children }) => {
   const { token, user } = useAuthStore();
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return null;
-  if (user.role !== "OWNER") return <Navigate to="/dashboard" replace />;
+  if (user.role !== "ADMIN") return <Navigate to="/dashboard" replace />;
   return children;
 };
 
@@ -70,19 +70,12 @@ const App = () => {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="patients" element={<PatientsPage />} />
           <Route path="bookings" element={<BookingsPage />} />
-          <Route path="doctors" element={<DoctorsPage />} />
-          <Route path="branches" element={<BranchesPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="schedules" element={<SchedulesPage />} />
-          <Route path="services" element={<ServicesPage />} />
-          <Route
-            path="users"
-            element={
-              <OwnerRoute>
-                <UsersPage />
-              </OwnerRoute>
-            }
-          />
+          <Route path="doctors" element={<AdminRoute><DoctorsPage /></AdminRoute>} />
+          <Route path="branches" element={<AdminRoute><BranchesPage /></AdminRoute>} />
+          <Route path="reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
+          <Route path="schedules" element={<AdminRoute><SchedulesPage /></AdminRoute>} />
+          <Route path="services" element={<AdminRoute><ServicesPage /></AdminRoute>} />
+          <Route path="users" element={<AdminRoute><UsersPage /></AdminRoute>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

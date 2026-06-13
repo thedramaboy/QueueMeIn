@@ -28,15 +28,15 @@ const Sidebar = ({ collapsed, onToggle }) => {
   };
 
   const menus = [
-    { label: "Dashboard",   path: "/dashboard", icon: LayoutDashboard, roles: ["OWNER", "STAFF"] },
-    { label: "ลูกค้า",      path: "/patients",  icon: Users,            roles: ["OWNER", "STAFF"] },
-    { label: "การจอง",      path: "/bookings",  icon: CalendarDays,     roles: ["OWNER", "STAFF"] },
-    { label: "หมอ",         path: "/doctors",   icon: Stethoscope,      roles: ["OWNER"] },
-    { label: "สาขา",        path: "/branches",  icon: GitBranch,        roles: ["OWNER"] },
-    { label: "รายงาน",      path: "/reports",   icon: ClipboardList,    roles: ["OWNER"] },
-    { label: "ตารางเวลา",   path: "/schedules", icon: Clock,            roles: ["OWNER"] },
-    { label: "หัตถการ",     path: "services",   icon: Syringe,          roles: ["OWNER"] },
-    { label: "ผู้ใช้งาน",   path: "/users",     icon: UserCog,          roles: ["OWNER"] },
+    { label: "Dashboard",   path: "/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "STAFF"] },
+    { label: "ลูกค้า",      path: "/patients",  icon: Users,            roles: ["ADMIN", "STAFF"] },
+    { label: "การจอง",      path: "/bookings",  icon: CalendarDays,     roles: ["ADMIN", "STAFF"] },
+    { label: "หมอ",         path: "/doctors",   icon: Stethoscope,      roles: ["ADMIN"] },
+    { label: "สาขา",        path: "/branches",  icon: GitBranch,        roles: ["ADMIN"] },
+    { label: "รายงาน",      path: "/reports",   icon: ClipboardList,    roles: ["ADMIN"] },
+    { label: "ตารางเวลา",   path: "/schedules", icon: Clock,            roles: ["ADMIN"] },
+    { label: "หัตถการ",     path: "services",   icon: Syringe,          roles: ["ADMIN"] },
+    { label: "ผู้ใช้งาน",   path: "/users",     icon: UserCog,          roles: ["ADMIN"] },
   ];
 
   const filteredMenus = menus.filter((menu) => menu.roles.includes(user?.role));

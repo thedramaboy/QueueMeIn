@@ -9,8 +9,8 @@ import allowRoles from "../middlewares/role.middleware.js";
 
 const router = Router();
 
-router.get("/summary", auth, allowRoles("OWNER"), getSummary);
-router.get("/bookings", auth, allowRoles("OWNER"), getBookingsReport);
-router.get("/patients", auth, allowRoles("OWNER"), getPatientsReport);
+router.get("/summary", auth, allowRoles("ADMIN"), getSummary);
+router.get("/bookings", auth, allowRoles("ADMIN"), getBookingsReport);
+router.get("/patients", auth, allowRoles("ADMIN"), getPatientsReport);
 
 export default router

@@ -7,7 +7,7 @@ import { createUserSchema, updateUserSchema } from "../schemas/user.schema.js";
 
 const router = Router();
 
-router.use(auth, allowRoles("OWNER"));
+router.use(auth, allowRoles("ADMIN"));
 
 router.get("/", getUsers);
 router.get("/:id", getUser);

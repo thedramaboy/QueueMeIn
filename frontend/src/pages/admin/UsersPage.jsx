@@ -32,7 +32,7 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { datagridSx } from "@/lib/datagrid";
 
 const RoleBadge = ({ role }) =>
-  role === "OWNER" ? (
+  role === "ADMIN" ? (
     <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/10 gap-1">
       <Shield className="h-3 w-3" /> Owner
     </Badge>
@@ -239,7 +239,7 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error }) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="STAFF">Staff</SelectItem>
-                  <SelectItem value="OWNER">Owner</SelectItem>
+                  <SelectItem value="ADMIN">Owner</SelectItem>
                 </SelectContent>
               </Select>
             </div>
