@@ -11,6 +11,7 @@ import scheduleRoutes from "./routes/schedule.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import webhookRoutes from "./routes/webhook.routes.js";
+import userRoutes from "./routes/user.routes.js";
 import { startReminderJob } from "./jobs/reminder.job.js";
 import { httpLogger } from "./middlewares/httpLogger.middleware.js";
 import logger from "./utils/logger.js";
@@ -42,6 +43,7 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/webhook", webhookRoutes);
+app.use("/api/users", userRoutes);
 
 app.use((req, res) => {
   logger.warn("Route not found", {
