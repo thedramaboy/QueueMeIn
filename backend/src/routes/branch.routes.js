@@ -15,8 +15,8 @@ const router = Router();
 
 router.get("/", auth, getBranches);
 router.get("/:id", auth, getBranch);
-router.post("/", auth, allowRoles("ADMIN"),validate(createBranchSchema), createBranch);
-router.put("/:id", auth, allowRoles("ADMIN"), validate(updateBranchSchema), updateBranch);
-router.delete("/:id", auth, allowRoles("ADMIN"), deleteBranch);
+router.post("/", auth, allowRoles("SUPERUSER", "ADMIN"), validate(createBranchSchema), createBranch);
+router.put("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), validate(updateBranchSchema), updateBranch);
+router.delete("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), deleteBranch);
 
 export default router;

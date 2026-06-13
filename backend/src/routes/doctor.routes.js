@@ -15,8 +15,8 @@ const router = Router();
 
 router.get("/", auth, getDoctors);
 router.get("/:id", auth, getDoctor);
-router.post("/", auth, allowRoles("ADMIN"),validate(createDoctorSchema), createDoctor);
-router.put("/:id", auth, allowRoles("ADMIN"), validate(updateDoctorSchema), updateDoctor);
-router.delete("/:id", auth, allowRoles("ADMIN"), deleteDoctor);
+router.post("/", auth, allowRoles("SUPERUSER", "ADMIN"), validate(createDoctorSchema), createDoctor);
+router.put("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), validate(updateDoctorSchema), updateDoctor);
+router.delete("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), deleteDoctor);
 
 export default router;

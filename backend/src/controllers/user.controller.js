@@ -15,7 +15,9 @@ const userSelect = {
 
 export const getUsers = async (req, res) => {
     try {
+        const where = req.user.role === "ADMIN" ? { role: "STAFF" } : {};
         const users = await prisma.user.findMany({
+            where,
             select: userSelect,
             orderBy: [{ isActive: "desc" }, { createdAt: "asc" }],
         });
@@ -44,6 +46,10 @@ export const getUser = async (req, res) => {
 export const createUser = async (req, res) => {
     try {
         const { name, email, password, role, branchId } = req.body;
+
+        if (req.user.role === "ADMIN" && role !== "STAFF") {
+            return res.status(403).json({ message: "Admin สามารถสร้างได้เฉพาะบัญชี Staff เท่านั้น" });
+        }
 
         const existing = await prisma.user.findUnique({ where: { email } });
         if (existing) {
@@ -106,6 +112,9 @@ export const deleteUser = async (req, res) => {
         const existing = await prisma.user.findUnique({ where: { id: Number(id) } });
         if (!existing) return res.status(404).json({ message: "ไม่พบผู้ใช้" });
         if (!existing.isActive) return res.status(400).json({ message: "บัญชีนี้ถูกปิดใช้งานแล้ว" });
+        if (req.user.role === "ADMIN" && existing.role !== "STAFF") {
+            return res.status(403).json({ message: "Admin สามารถจัดการได้เฉพาะบัญชี Staff เท่านั้น" });
+        }
 
         await prisma.user.update({
             where: { id: Number(id) },

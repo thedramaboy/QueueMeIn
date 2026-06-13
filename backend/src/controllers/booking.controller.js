@@ -9,10 +9,11 @@ import logger from "../utils/logger.js";
 export const getBookings = async (req, res) => {
   try {
     const { branchId, doctorId, date, status } = req.query;
+    const effectiveBranchId = req.user.role === "STAFF" ? req.user.branchId : branchId;
 
     const bookings = await prisma.booking.findMany({
       where: {
-        ...(branchId && { branchId: Number(branchId) }),
+        ...(effectiveBranchId && { branchId: Number(effectiveBranchId) }),
         ...(doctorId && { doctorId: Number(doctorId) }),
         ...(status && { status }),
         ...(date && {

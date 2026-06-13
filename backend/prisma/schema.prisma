@@ -9,6 +9,7 @@ datasource db {
 }
 
 enum Role {
+  SUPERUSER
   ADMIN
   STAFF
 }

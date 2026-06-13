@@ -13,8 +13,8 @@ import { createCategorySchema, updateCategorySchema } from "../schemas/category.
 const router = Router();
 
 router.get("/", auth, getCategories);
-router.post("/", auth, allowRoles("ADMIN"),validate(createCategorySchema), createCategory);
-router.put("/:id", auth, allowRoles("ADMIN"), validate(updateCategorySchema), updateCategory);
-router.delete("/:id", auth, allowRoles("ADMIN"), deleteCategory);
+router.post("/", auth, allowRoles("SUPERUSER", "ADMIN"), validate(createCategorySchema), createCategory);
+router.put("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), validate(updateCategorySchema), updateCategory);
+router.delete("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), deleteCategory);
 
 export default router;

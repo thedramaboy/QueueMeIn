@@ -15,25 +15,25 @@ import { createBookingSchema, updateBookingSchema, updateBookingStatusSchema, re
 const router = Router();
 
 router.get("/", auth, getBookings);
-router.post("/", auth, allowRoles("ADMIN", "STAFF"), validate(createBookingSchema), createBooking);
+router.post("/", auth, allowRoles("SUPERUSER", "ADMIN", "STAFF"), validate(createBookingSchema), createBooking);
 router.patch(
   "/:id/status",
   auth,
-  allowRoles("ADMIN", "STAFF"),
+  allowRoles("SUPERUSER", "ADMIN", "STAFF"),
   validate(updateBookingStatusSchema),
   updateBookingStatus,
 );
 router.patch(
   "/:id",
   auth,
-  allowRoles("ADMIN", "STAFF"),
+  allowRoles("SUPERUSER", "ADMIN", "STAFF"),
   validate(updateBookingSchema),
   updateBooking,
 );
 router.post(
   "/:id/reschedule",
   auth,
-  allowRoles("ADMIN", "STAFF"),
+  allowRoles("SUPERUSER", "ADMIN", "STAFF"),
   validate(rescheduleBookingSchema),
   rescheduleBooking,
 );

@@ -15,8 +15,8 @@ const router = Router();
 
 router.get("/", auth, getServices);
 router.get("/:id", auth, getService);
-router.post("/", auth, allowRoles("ADMIN"),validate(createServiceSchema), createService);
-router.put("/:id", auth, allowRoles("ADMIN"), validate(updateServiceSchema), updateService);
-router.delete("/:id", auth, allowRoles("ADMIN"), deleteService);
+router.post("/", auth, allowRoles("SUPERUSER", "ADMIN"), validate(createServiceSchema), createService);
+router.put("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), validate(updateServiceSchema), updateService);
+router.delete("/:id", auth, allowRoles("SUPERUSER", "ADMIN"), deleteService);
 
 export default router;

@@ -7,6 +7,9 @@ export const getPatients = async (req, res) => {
 
     const patients = await prisma.patient.findMany({
       where: {
+        ...(req.user.role === "STAFF" && req.user.branchId && {
+          bookings: { some: { branchId: req.user.branchId } },
+        }),
         ...(search && {
           OR: [
             { firstName: { contains: search, mode: "insensitive" } },

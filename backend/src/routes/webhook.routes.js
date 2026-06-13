@@ -12,7 +12,7 @@ const router = Router();
 
 router.post("/", handleWebhook);
 router.get("/pending", auth, getPendingLineUsers);
-router.post("/link", auth, allowRoles("ADMIN", "STAFF"), linkLineUser);
-router.delete("/link/:patientId", auth, allowRoles("ADMIN", "STAFF"), unlinkPatientLine);
+router.post("/link", auth, allowRoles("SUPERUSER", "ADMIN", "STAFF"), linkLineUser);
+router.delete("/link/:patientId", auth, allowRoles("SUPERUSER", "ADMIN", "STAFF"), unlinkPatientLine);
 
 export default router;
