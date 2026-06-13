@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -44,68 +44,150 @@ import {
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import PageHeader from "@/components/shared/PageHeader";
 import StatusBadge from "@/components/shared/StatusBadge";
 import DetailRow from "@/components/shared/DetailRow";
 import EmptyState from "@/components/shared/EmptyState";
 
-const BookingSlotSkeleton = () => (
-  <div className="w-full p-4 rounded-xl border-2 border-border bg-card">
-    <div className="flex items-start justify-between gap-3">
-      <div className="space-y-2 flex-1">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="h-3 w-52" />
-      </div>
-      <Skeleton className="h-5 w-16 rounded-full shrink-0" />
-    </div>
-  </div>
-);
+const HOUR_START = 8;
+const HOUR_END = 20;
+const TOTAL_MINUTES = (HOUR_END - HOUR_START) * 60;
+const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+const ROW_HEIGHT = 64;
 
-const SLOT_BORDER = {
-  PENDING:     "border-amber-400",
-  CONFIRMED:   "border-blue-400",
-  COMPLETED:   "border-green-500",
-  CANCELLED:   "border-red-400",
-  NO_SHOW:     "border-border",
-  RESCHEDULED: "border-purple-400",
+const STATUS_BLOCK = {
+  PENDING:     "bg-amber-50 border-amber-400 text-amber-900",
+  CONFIRMED:   "bg-blue-50 border-blue-400 text-blue-900",
+  COMPLETED:   "bg-green-50 border-green-500 text-green-900",
+  CANCELLED:   "bg-red-50 border-red-400 text-red-700 opacity-50",
+  NO_SHOW:     "bg-gray-100 border-gray-400 text-gray-500 opacity-50",
+  RESCHEDULED: "bg-purple-50 border-purple-400 text-purple-900 opacity-60",
 };
 
-const BookingSlot = ({ booking, onClick }) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "w-full text-left p-4 rounded-xl border-2 bg-card transition-colors min-h-[44px]",
-      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-      "hover:bg-accent/10",
-      SLOT_BORDER[booking.status] ?? "border-border",
-    )}
-  >
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <p className="font-medium text-sm truncate">
-          {booking.patient?.nickname || booking.patient?.firstName}{" "}
-          {booking.patient?.lastName}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {booking.startTime} – {booking.endTime} · {booking.service?.name}
-        </p>
-        {booking.patient?.allergyHistory && (
-          <p className="text-xs text-destructive mt-0.5">
-            แพ้: {booking.patient.allergyHistory}
-          </p>
-        )}
+const timeToMinutes = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const getBlockStyle = (booking) => {
+  const startMin = Math.max(0, timeToMinutes(booking.startTime) - HOUR_START * 60);
+  const endMin = Math.min(TOTAL_MINUTES, timeToMinutes(booking.endTime) - HOUR_START * 60);
+  return {
+    left: `${(startMin / TOTAL_MINUTES) * 100}%`,
+    width: `${Math.max(1, ((endMin - startMin) / TOTAL_MINUTES) * 100)}%`,
+  };
+};
+
+const GanttSkeleton = () => (
+  <Card>
+    <CardContent className="p-0">
+      <div className="min-w-[700px]">
+        <div className="flex border-b border-border h-9">
+          <div className="w-36 shrink-0 border-r border-border/40" />
+          <Skeleton className="flex-1 m-2 rounded" />
+        </div>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex border-b border-border/30" style={{ minHeight: ROW_HEIGHT }}>
+            <div className="w-36 shrink-0 border-r border-border/40 p-3 flex items-center">
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <div className="flex-1 p-2 flex items-center">
+              <Skeleton className="h-10 rounded" style={{ width: `${20 + i * 10}%` }} />
+            </div>
+          </div>
+        ))}
       </div>
-      <div className="shrink-0 flex flex-col items-end gap-1">
-        <StatusBadge status={booking.status} />
-        <span className="text-xs text-muted-foreground">
-          {booking.doctor?.name}
-        </span>
-      </div>
-    </div>
-  </button>
+    </CardContent>
+  </Card>
 );
+
+const BookingGantt = ({ bookings, isLoading, onBookingClick }) => {
+  const doctorRows = useMemo(() => {
+    const map = new Map();
+    for (const b of bookings) {
+      const key = b.doctor?.id ?? 0;
+      if (!map.has(key)) map.set(key, { doctor: b.doctor, bookings: [] });
+      map.get(key).bookings.push(b);
+    }
+    return Array.from(map.values());
+  }, [bookings]);
+
+  if (isLoading) return <GanttSkeleton />;
+  if (bookings.length === 0) return <EmptyState message="ไม่มีการจองวันนี้" />;
+
+  return (
+    <Card>
+      <CardContent className="p-0 overflow-x-auto">
+        <div className="min-w-[700px]">
+          {/* Hour header */}
+          <div className="flex border-b border-border">
+            <div className="w-36 shrink-0 border-r border-border/40" />
+            <div className="flex-1 flex">
+              {HOURS.map((h) => (
+                <div
+                  key={h}
+                  className="flex-1 text-xs text-muted-foreground py-2 pl-1 border-l border-border/40 font-mono"
+                >
+                  {h}:00
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Doctor rows */}
+          {doctorRows.map(({ doctor, bookings: rowBookings }) => (
+            <div
+              key={doctor?.id}
+              className="flex border-b border-border/30 last:border-0"
+              style={{ minHeight: ROW_HEIGHT }}
+            >
+              {/* Doctor name */}
+              <div className="w-36 shrink-0 sticky left-0 bg-card flex items-center px-3 border-r border-border/40 z-10">
+                <p className="text-xs font-medium leading-tight">{doctor?.name}</p>
+              </div>
+
+              {/* Time area */}
+              <div className="flex-1 relative" style={{ minHeight: ROW_HEIGHT }}>
+                {/* Grid lines */}
+                <div className="absolute inset-0 flex pointer-events-none">
+                  {HOURS.map((h) => (
+                    <div key={h} className="flex-1 border-l border-border/30" />
+                  ))}
+                </div>
+
+                {/* Booking blocks */}
+                {rowBookings.map((booking) => {
+                  const { left, width } = getBlockStyle(booking);
+                  return (
+                    <div
+                      key={booking.id}
+                      className={cn(
+                        "absolute top-2 bottom-2 rounded border cursor-pointer px-2 py-1 overflow-hidden",
+                        "hover:brightness-95 transition-all",
+                        STATUS_BLOCK[booking.status] ?? STATUS_BLOCK.PENDING,
+                      )}
+                      style={{ left, width }}
+                      onClick={() => onBookingClick(booking)}
+                    >
+                      <p className="text-xs font-semibold truncate leading-tight">
+                        {booking.patient?.nickname || booking.patient?.firstName}{" "}
+                        {booking.patient?.lastName}
+                      </p>
+                      <p className="text-xs font-mono truncate opacity-75">
+                        {booking.startTime}–{booking.endTime}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const STATUSES = [
   { value: "PENDING",   label: "รอยืนยัน" },
@@ -206,8 +288,8 @@ const BookingsPage = () => {
           </p>
         </div>
 
-        {/* Right: Filter bar + Booking slots */}
-        <div className="flex-1 min-w-0 max-w-lg">
+        {/* Right: Filter bar + Gantt */}
+        <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <Select
               value={filters.branchId || "all"}
@@ -267,23 +349,11 @@ const BookingsPage = () => {
             )}
           </div>
 
-          <ScrollArea className="h-[calc(100vh-260px)]">
-            <div className="space-y-2 pr-4">
-              {isLoading ? (
-                Array.from({ length: 4 }, (_, i) => <BookingSlotSkeleton key={i} />)
-              ) : bookings.length === 0 ? (
-                <EmptyState message="ไม่มีการจองวันนี้" />
-              ) : (
-                bookings.map((booking) => (
-                  <BookingSlot
-                    key={booking.id}
-                    booking={booking}
-                    onClick={() => setSelected(booking)}
-                  />
-                ))
-              )}
-            </div>
-          </ScrollArea>
+          <BookingGantt
+            bookings={bookings}
+            isLoading={isLoading}
+            onBookingClick={setSelected}
+          />
         </div>
       </div>
 
