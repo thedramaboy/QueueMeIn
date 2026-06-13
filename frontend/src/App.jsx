@@ -12,10 +12,19 @@ import BranchesPage from "./pages/admin/BranchesPage.jsx";
 import ReportsPage from "./pages/admin/ReportsPage.jsx";
 import SchedulesPage from "./pages/admin/SchedulesPage.jsx";
 import ServicesPage from "./pages/admin/ServicesPage.jsx";
+import UsersPage from "./pages/admin/UsersPage.jsx";
 
 const ProtectedRoute = ({ children }) => {
   const { token } = useAuthStore();
   if (!token) return <Navigate to="/login" replace />;
+  return children;
+};
+
+const OwnerRoute = ({ children }) => {
+  const { token, user } = useAuthStore();
+  if (!token) return <Navigate to="/login" replace />;
+  if (!user) return null;
+  if (user.role !== "OWNER") return <Navigate to="/dashboard" replace />;
   return children;
 };
 
@@ -66,6 +75,14 @@ const App = () => {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="schedules" element={<SchedulesPage />} />
           <Route path="services" element={<ServicesPage />} />
+          <Route
+            path="users"
+            element={
+              <OwnerRoute>
+                <UsersPage />
+              </OwnerRoute>
+            }
+          />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

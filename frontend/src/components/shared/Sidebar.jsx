@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock,
   Syringe,
+  UserCog,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -35,6 +36,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
     { label: "รายงาน",      path: "/reports",   icon: ClipboardList,    roles: ["OWNER"] },
     { label: "ตารางเวลา",   path: "/schedules", icon: Clock,            roles: ["OWNER"] },
     { label: "หัตถการ",     path: "services",   icon: Syringe,          roles: ["OWNER"] },
+    { label: "ผู้ใช้งาน",   path: "/users",     icon: UserCog,          roles: ["OWNER"] },
   ];
 
   const filteredMenus = menus.filter((menu) => menu.roles.includes(user?.role));
