@@ -251,6 +251,15 @@ const BookingsPage = () => {
     },
   });
 
+  const paymentMutation = useMutation({
+    mutationFn: ({ id, data }) => bookingService.markAsPaid(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setSelected(null);
+      toast.success("บันทึกการชำระเงินสำเร็จ");
+    },
+  });
+
   const formOpen = showForm || !!editing;
   const formError =
     createMutation.error?.response?.data?.message ||
@@ -383,6 +392,8 @@ const BookingsPage = () => {
           statusMutation.mutate({ id: selected.id, status });
           setSelected(null);
         }}
+        onPayment={(data) => paymentMutation.mutate({ id: selected.id, data })}
+        isPaymentLoading={paymentMutation.isPending}
       />
     </div>
   );
@@ -399,6 +410,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
     startTime: booking?.startTime ?? "",
     deposit: booking?.deposit != null ? String(booking.deposit) : "",
     note: booking?.note ?? "",
+    treatmentNote: booking?.treatmentNote ?? "",
   });
 
   const patientLabel = booking
@@ -438,6 +450,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
       branchId: Number(form.branchId),
       serviceId: Number(form.serviceId),
       deposit: form.deposit ? Number(form.deposit) : null,
+      treatmentNote: form.treatmentNote || null,
     });
   };
 
@@ -606,6 +619,19 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
             />
           </div>
 
+          {isEdit && (
+            <div className="space-y-1.5">
+              <Label htmlFor="b-treatment">บันทึกการรักษา</Label>
+              <Textarea
+                id="b-treatment"
+                value={form.treatmentNote}
+                onChange={(e) => set("treatmentNote")(e.target.value)}
+                placeholder="รายละเอียดการรักษาที่ดำเนินการ..."
+                rows={3}
+              />
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
@@ -625,7 +651,13 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
   );
 };
 
-const BookingDetail = ({ booking, onClose, onEdit, onStatusChange }) => {
+const PAYMENT_LABELS = { CASH: "เงินสด", TRANSFER: "โอนเงิน", CARD: "บัตรเครดิต" };
+const SKIP_PAY_STATUSES = ["CANCELLED", "NO_SHOW", "RESCHEDULED"];
+
+const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, isPaymentLoading }) => {
+  const [showPayForm, setShowPayForm] = useState(false);
+  const [payForm, setPayForm] = useState({ paidAmount: "", paymentMethod: "CASH" });
+
   const statuses = [
     { value: "CONFIRMED",  label: "ยืนยันนัด" },
     { value: "COMPLETED",  label: "เสร็จแล้ว" },
@@ -633,9 +665,14 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange }) => {
     { value: "NO_SHOW",    label: "ไม่มา" },
   ];
 
+  const handlePaySubmit = (e) => {
+    e.preventDefault();
+    onPayment({ paidAmount: Number(payForm.paidAmount), paymentMethod: payForm.paymentMethod });
+  };
+
   return (
     <Dialog open={!!booking} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>รายละเอียดการจอง</DialogTitle>
           {booking && (
@@ -650,14 +687,8 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange }) => {
                 label="ลูกค้า"
                 value={`${booking.patient?.firstName} ${booking.patient?.lastName}`}
               />
-              <DetailRow
-                label="ชื่อเล่น"
-                value={booking.patient?.nickname || "-"}
-              />
-              <DetailRow
-                label="เวลา"
-                value={`${booking.startTime} – ${booking.endTime}`}
-              />
+              <DetailRow label="ชื่อเล่น" value={booking.patient?.nickname || "-"} />
+              <DetailRow label="เวลา" value={`${booking.startTime} – ${booking.endTime}`} />
               <DetailRow label="หัตถการ" value={booking.service?.name} />
               <DetailRow label="หมอ" value={booking.doctor?.name} />
               <DetailRow label="สาขา" value={booking.branch?.name} />
@@ -666,6 +697,9 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange }) => {
                 value={booking.deposit ? `฿${formatCurrency(booking.deposit)}` : "-"}
               />
               <DetailRow label="หมายเหตุ" value={booking.note || "-"} />
+              {booking.treatmentNote && (
+                <DetailRow label="บันทึกการรักษา" value={booking.treatmentNote} />
+              )}
               {booking.patient?.allergyHistory && (
                 <DetailRow
                   label="แพ้ยา"
@@ -674,12 +708,74 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange }) => {
                 />
               )}
               <div className="flex items-center justify-between py-2.5 gap-4">
-                <span className="text-sm text-muted-foreground shrink-0">
-                  สถานะ
-                </span>
+                <span className="text-sm text-muted-foreground shrink-0">สถานะ</span>
                 <StatusBadge status={booking.status} />
               </div>
             </div>
+
+            {/* Payment section */}
+            {booking.paidAmount ? (
+              <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5">
+                <p className="text-sm font-semibold text-green-700">ชำระเงินแล้ว</p>
+                <p className="text-sm text-green-700">
+                  ฿{formatCurrency(booking.paidAmount)} — {PAYMENT_LABELS[booking.paymentMethod]}
+                </p>
+              </div>
+            ) : !SKIP_PAY_STATUSES.includes(booking.status) && (
+              <div>
+                {!showPayForm ? (
+                  <Button
+                    variant="outline"
+                    className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                    onClick={() => setShowPayForm(true)}
+                  >
+                    บันทึกการชำระเงิน
+                  </Button>
+                ) : (
+                  <form onSubmit={handlePaySubmit} className="space-y-3 border border-border rounded-lg p-3">
+                    <p className="text-sm font-medium">บันทึกการชำระเงิน</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="pay-amount" className="text-xs">จำนวนเงิน (บาท) *</Label>
+                        <Input
+                          id="pay-amount"
+                          type="number"
+                          min="1"
+                          value={payForm.paidAmount}
+                          onChange={(e) => setPayForm((f) => ({ ...f, paidAmount: e.target.value }))}
+                          placeholder="0"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="pay-method" className="text-xs">วิธีชำระ *</Label>
+                        <Select
+                          value={payForm.paymentMethod}
+                          onValueChange={(v) => setPayForm((f) => ({ ...f, paymentMethod: v }))}
+                        >
+                          <SelectTrigger id="pay-method">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CASH">เงินสด</SelectItem>
+                            <SelectItem value="TRANSFER">โอนเงิน</SelectItem>
+                            <SelectItem value="CARD">บัตรเครดิต</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setShowPayForm(false)}>
+                        ยกเลิก
+                      </Button>
+                      <Button type="submit" size="sm" className="flex-1" disabled={isPaymentLoading}>
+                        {isPaymentLoading ? "กำลังบันทึก..." : "บันทึก"}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
 
             <div>
               <p className="text-sm font-medium mb-2">เปลี่ยนสถานะ</p>

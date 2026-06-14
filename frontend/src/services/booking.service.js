@@ -10,4 +10,6 @@ export const bookingService = {
     api.patch(`/bookings/${id}`, data).then((res) => res.data),
   reschedule: (id, data) =>
     api.post(`/bookings/${id}/reschedule`, data).then((res) => res.data),
+  markAsPaid: (id, data) =>
+    api.patch(`/bookings/${id}/payment`, data).then((res) => res.data),
 };

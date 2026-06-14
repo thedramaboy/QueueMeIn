@@ -9,7 +9,9 @@ import { DataGrid } from "@mui/x-data-grid";
 import StatusBadge from "@/components/shared/StatusBadge";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
-import TableSkeleton, { StatCardSkeleton } from "@/components/shared/TableSkeleton";
+import TableSkeleton, {
+  StatCardSkeleton,
+} from "@/components/shared/TableSkeleton";
 import { datagridSx } from "@/lib/datagrid";
 
 const StatCard = ({ label, value, icon: Icon, iconClassName }) => (
@@ -40,27 +42,48 @@ const DashboardPage = () => {
   });
 
   const newPatients = patients.filter((p) => p.isNewPatient).length;
-  const pendingCount = todayBookings.filter((b) => b.status === "PENDING").length;
+  const pendingCount = todayBookings.filter(
+    (b) => b.status === "PENDING",
+  ).length;
 
   const stats = [
-    { label: "การจองวันนี้", value: todayBookings.length, icon: CalendarDays, iconClassName: "bg-primary" },
-    { label: "รอยืนยัน",     value: pendingCount,         icon: Clock,        iconClassName: "bg-amber-500" },
-    { label: "ลูกค้าทั้งหมด", value: patients.length,      icon: Users,        iconClassName: "bg-green-600" },
-    { label: "ลูกค้าใหม่วันนี้", value: newPatients,       icon: UserCheck,    iconClassName: "bg-accent" },
+    {
+      label: "การจองวันนี้",
+      value: todayBookings.length,
+      icon: CalendarDays,
+      iconClassName: "bg-primary",
+    },
+    {
+      label: "รอยืนยัน",
+      value: pendingCount,
+      icon: Clock,
+      iconClassName: "bg-amber-500",
+    },
+    {
+      label: "ลูกค้าทั้งหมด",
+      value: patients.length,
+      icon: Users,
+      iconClassName: "bg-green-600",
+    },
+    {
+      label: "ลูกค้าใหม่วันนี้",
+      value: newPatients,
+      icon: UserCheck,
+      iconClassName: "bg-accent",
+    },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard"
+        title="แดชบอร์ด"
         subtitle={format(new Date(), "EEEE dd MMMM yyyy", { locale: th })}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {(loadingBookings || loadingPatients)
+        {loadingBookings || loadingPatients
           ? Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)
-          : stats.map((stat) => <StatCard key={stat.label} {...stat} />)
-        }
+          : stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
       </div>
 
       <Card>
@@ -76,15 +99,38 @@ const DashboardPage = () => {
             <DataGrid
               rows={todayBookings}
               columns={[
-                { field: "time", headerName: "เวลา", width: 130, valueGetter: (_, row) => `${row.startTime} – ${row.endTime}` },
-                { field: "patient", headerName: "ลูกค้า", flex: 1, valueGetter: (_, row) => row.patient?.nickname || row.patient?.firstName },
-                { field: "service", headerName: "หัตถการ", flex: 1, valueGetter: (_, row) => row.service?.name },
-                { field: "doctor", headerName: "หมอ", flex: 1, valueGetter: (_, row) => row.doctor?.name },
+                {
+                  field: "time",
+                  headerName: "เวลา",
+                  width: 130,
+                  valueGetter: (_, row) => `${row.startTime} – ${row.endTime}`,
+                },
+                {
+                  field: "patient",
+                  headerName: "ลูกค้า",
+                  flex: 1,
+                  valueGetter: (_, row) =>
+                    row.patient?.nickname || row.patient?.firstName,
+                },
+                {
+                  field: "service",
+                  headerName: "หัตถการ",
+                  flex: 1,
+                  valueGetter: (_, row) => row.service?.name,
+                },
+                {
+                  field: "doctor",
+                  headerName: "หมอ",
+                  flex: 1,
+                  valueGetter: (_, row) => row.doctor?.name,
+                },
                 {
                   field: "status",
                   headerName: "สถานะ",
                   width: 130,
-                  renderCell: (params) => <StatusBadge status={params.row.status} />,
+                  renderCell: (params) => (
+                    <StatusBadge status={params.row.status} />
+                  ),
                 },
               ]}
               autoHeight
