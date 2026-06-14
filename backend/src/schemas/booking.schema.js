@@ -24,7 +24,13 @@ export const updateBookingSchema = z.object({
     date: z.string().min(1, "กรุณาเลือกวันที่"),
     startTime: z.string().regex(/^\d{2}:\d{2}$/, "เวลาไม่ถูกต้อง เช่น 16:00"),
     deposit: z.number().optional().nullable(),
-    note: z.string().optional().nullable()
+    note: z.string().optional().nullable(),
+    treatmentNote: z.string().optional().nullable(),
+})
+
+export const markAsPaidSchema = z.object({
+    paidAmount: z.number().positive("กรุณากรอกจำนวนเงิน"),
+    paymentMethod: z.enum(["CASH", "TRANSFER", "CARD"], { errorMap: () => ({ message: "วิธีชำระเงินไม่ถูกต้อง" }) }),
 })
 
 export const rescheduleBookingSchema = z.object({

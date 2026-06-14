@@ -14,6 +14,12 @@ enum Role {
   STAFF
 }
 
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+}
+
 enum BookingStatus {
   PENDING
   CONFIRMED
@@ -160,6 +166,10 @@ model Booking {
   status          BookingStatus @default(PENDING)
   deposit         Decimal?
   note            String?
+  treatmentNote   String?
+  paidAmount      Decimal?
+  paymentMethod   PaymentMethod?
+  paidAt          DateTime?
   createdBy       Int
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

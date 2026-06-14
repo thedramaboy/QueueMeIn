@@ -5,12 +5,13 @@ import {
   createBooking,
   updateBooking,
   updateBookingStatus,
+  markAsPaid,
   rescheduleBooking,
 } from "../controllers/booking.controller.js";
 import auth from "../middlewares/auth.middleware.js";
 import allowRoles from "../middlewares/role.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
-import { createBookingSchema, updateBookingSchema, updateBookingStatusSchema, rescheduleBookingSchema } from "../schemas/booking.schema.js";
+import { createBookingSchema, updateBookingSchema, updateBookingStatusSchema, markAsPaidSchema, rescheduleBookingSchema } from "../schemas/booking.schema.js";
 
 const router = Router();
 
@@ -29,6 +30,13 @@ router.patch(
   allowRoles("SUPERUSER", "ADMIN", "STAFF"),
   validate(updateBookingSchema),
   updateBooking,
+);
+router.patch(
+  "/:id/payment",
+  auth,
+  allowRoles("SUPERUSER", "ADMIN", "STAFF"),
+  validate(markAsPaidSchema),
+  markAsPaid,
 );
 router.post(
   "/:id/reschedule",

@@ -268,7 +268,7 @@ export const updateBookingStatus = async (req, res) => {
 export const updateBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    const { doctorId, branchId, serviceId, date, startTime, deposit, note } = req.body;
+    const { doctorId, branchId, serviceId, date, startTime, deposit, note, treatmentNote } = req.body;
 
     const existing = await prisma.booking.findUnique({ where: { id: Number(id) } });
     if (!existing) {
@@ -305,6 +305,7 @@ export const updateBooking = async (req, res) => {
         endTime,
         deposit: deposit ?? null,
         note: note ?? null,
+        treatmentNote: treatmentNote ?? null,
       },
       include: { patient: true, doctor: true, branch: true, service: true },
     });
@@ -314,6 +315,30 @@ export const updateBooking = async (req, res) => {
   } catch (error) {
     logger.error("Update booking error", { bookingId: req.params.id, error: error.message });
     res.status(500).json({ message: "ไม่สามารถอัปเดตการจองได้", error: error.message });
+  }
+};
+
+export const markAsPaid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paidAmount, paymentMethod } = req.body;
+
+    const existing = await prisma.booking.findUnique({ where: { id: Number(id) } });
+    if (!existing) {
+      return res.status(404).json({ message: "ไม่พบการจอง" });
+    }
+
+    const booking = await prisma.booking.update({
+      where: { id: Number(id) },
+      data: { paidAmount, paymentMethod, paidAt: new Date() },
+      include: { patient: true, doctor: true, branch: true, service: true },
+    });
+
+    logger.info("Mark as paid success", { bookingId: id, paidAmount, paymentMethod, requestedBy: req.user.id });
+    res.json({ message: "บันทึกการชำระเงินสำเร็จ", booking });
+  } catch (error) {
+    logger.error("Mark as paid error", { bookingId: req.params.id, error: error.message });
+    res.status(500).json({ message: "ไม่สามารถบันทึกการชำระเงินได้", error: error.message });
   }
 };
 
