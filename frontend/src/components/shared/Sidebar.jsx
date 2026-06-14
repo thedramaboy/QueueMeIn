@@ -28,15 +28,60 @@ const Sidebar = ({ collapsed, onToggle }) => {
   };
 
   const menus = [
-    { label: "Dashboard",   path: "/dashboard", icon: LayoutDashboard, roles: ["SUPERUSER", "ADMIN", "STAFF"] },
-    { label: "ลูกค้า",      path: "/patients",  icon: Users,            roles: ["SUPERUSER", "ADMIN", "STAFF"] },
-    { label: "การจอง",      path: "/bookings",  icon: CalendarDays,     roles: ["SUPERUSER", "ADMIN", "STAFF"] },
-    { label: "หมอ",         path: "/doctors",   icon: Stethoscope,      roles: ["SUPERUSER", "ADMIN"] },
-    { label: "สาขา",        path: "/branches",  icon: GitBranch,        roles: ["SUPERUSER", "ADMIN"] },
-    { label: "รายงาน",      path: "/reports",   icon: ClipboardList,    roles: ["SUPERUSER", "ADMIN"] },
-    { label: "ตารางเวลา",   path: "/schedules", icon: Clock,            roles: ["SUPERUSER", "ADMIN", "STAFF"] },
-    { label: "หัตถการ",     path: "services",   icon: Syringe,          roles: ["SUPERUSER", "ADMIN"] },
-    { label: "ผู้ใช้งาน",   path: "/users",     icon: UserCog,          roles: ["SUPERUSER", "ADMIN"] },
+    {
+      label: "แดชบอร์ด",
+      path: "/dashboard",
+      icon: LayoutDashboard,
+      roles: ["SUPERUSER", "ADMIN", "STAFF"],
+    },
+    {
+      label: "ลูกค้า",
+      path: "/patients",
+      icon: Users,
+      roles: ["SUPERUSER", "ADMIN", "STAFF"],
+    },
+    {
+      label: "การจอง",
+      path: "/bookings",
+      icon: CalendarDays,
+      roles: ["SUPERUSER", "ADMIN", "STAFF"],
+    },
+    {
+      label: "หมอ",
+      path: "/doctors",
+      icon: Stethoscope,
+      roles: ["SUPERUSER", "ADMIN"],
+    },
+    {
+      label: "สาขา",
+      path: "/branches",
+      icon: GitBranch,
+      roles: ["SUPERUSER", "ADMIN"],
+    },
+    {
+      label: "รายงาน",
+      path: "/reports",
+      icon: ClipboardList,
+      roles: ["SUPERUSER", "ADMIN"],
+    },
+    {
+      label: "ตารางเวลา",
+      path: "/schedules",
+      icon: Clock,
+      roles: ["SUPERUSER", "ADMIN", "STAFF"],
+    },
+    {
+      label: "หัตถการ",
+      path: "services",
+      icon: Syringe,
+      roles: ["SUPERUSER", "ADMIN"],
+    },
+    {
+      label: "ผู้ใช้งาน",
+      path: "/users",
+      icon: UserCog,
+      roles: ["SUPERUSER", "ADMIN"],
+    },
   ];
 
   const filteredMenus = menus.filter((menu) => menu.roles.includes(user?.role));
@@ -49,7 +94,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
       )}
     >
       {/* Logo + toggle */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-primary-foreground/10">
+      <div className="flex items-center justify-between px-2.5 py-5 border-b border-primary-foreground/10">
         {!collapsed && (
           <span className="font-bold text-primary-foreground text-lg tracking-tight">
             Clinic
@@ -67,7 +112,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-4 space-y-1 px-2">
+      <nav className="flex-1 py-4 space-y-1 px-2.5">
         {filteredMenus.map((menu) => (
           <NavLink
             key={menu.path}
