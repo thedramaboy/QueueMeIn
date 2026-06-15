@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getDashboard,
   getSummary,
   getBookingsReport,
   getPatientsReport,
@@ -9,6 +10,7 @@ import allowRoles from "../middlewares/role.middleware.js";
 
 const router = Router();
 
+router.get("/dashboard", auth, getDashboard);
 router.get("/summary", auth, allowRoles("SUPERUSER", "ADMIN"), getSummary);
 router.get("/bookings", auth, allowRoles("SUPERUSER", "ADMIN"), getBookingsReport);
 router.get("/patients", auth, allowRoles("SUPERUSER", "ADMIN"), getPatientsReport);

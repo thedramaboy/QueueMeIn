@@ -42,7 +42,10 @@ const DAY_LABELS = {
 const HOUR_START = 8;
 const HOUR_END = 20;
 const TOTAL_MINUTES = (HOUR_END - HOUR_START) * 60;
-const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+const HOURS = Array.from(
+  { length: HOUR_END - HOUR_START },
+  (_, i) => HOUR_START + i,
+);
 const LANE_HEIGHT = 52;
 
 const timeToMinutes = (t) => {
@@ -51,8 +54,14 @@ const timeToMinutes = (t) => {
 };
 
 const getBlockStyle = (schedule) => {
-  const startMin = Math.max(0, timeToMinutes(schedule.startTime) - HOUR_START * 60);
-  const endMin = Math.min(TOTAL_MINUTES, timeToMinutes(schedule.endTime) - HOUR_START * 60);
+  const startMin = Math.max(
+    0,
+    timeToMinutes(schedule.startTime) - HOUR_START * 60,
+  );
+  const endMin = Math.min(
+    TOTAL_MINUTES,
+    timeToMinutes(schedule.endTime) - HOUR_START * 60,
+  );
   return {
     left: `${(startMin / TOTAL_MINUTES) * 100}%`,
     width: `${((endMin - startMin) / TOTAL_MINUTES) * 100}%`,
@@ -65,10 +74,12 @@ const SchedulesPage = () => {
   const isStaff = user?.role === "STAFF";
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [filterBranch, setFilterBranch] = useState("all");
+  const [filterBranch, setFilterBranch] = useState(
+    isStaff ? String(user?.branchId) : "all",
+  );
   const [filterDoctor, setFilterDoctor] = useState("all");
 
-  const { data: schedules = [], isLoading } = useQuery({
+  const { data: schedules = [], isLoading, isFetching } = useQuery({
     queryKey: ["schedules", filterBranch, filterDoctor],
     queryFn: () =>
       scheduleService.getAll({
@@ -153,7 +164,7 @@ const SchedulesPage = () => {
         </Select>
       </div>
 
-      {isLoading ? (
+      {isLoading || isFetching ? (
         <GanttSkeleton />
       ) : schedules.length === 0 ? (
         <Card>
@@ -183,7 +194,10 @@ const SchedulesPage = () => {
               {/* Day rows */}
               {DAY_ORDER.map((day) => {
                 const daySchedules = schedulesByDay[day];
-                const rowHeight = Math.max(64, daySchedules.length * LANE_HEIGHT + 8);
+                const rowHeight = Math.max(
+                  64,
+                  daySchedules.length * LANE_HEIGHT + 8,
+                );
                 return (
                   <div
                     key={day}
@@ -222,7 +236,9 @@ const SchedulesPage = () => {
                       {/* Schedule blocks */}
                       {daySchedules.length === 0 ? (
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">
+                            —
+                          </span>
                         </div>
                       ) : (
                         daySchedules.map((schedule, idx) => {
@@ -296,7 +312,10 @@ const GanttSkeleton = () => (
           </div>
         </div>
         {DAY_ORDER.map((day) => (
-          <div key={day} className="flex border-b border-border last:border-b-0 h-16">
+          <div
+            key={day}
+            className="flex border-b border-border last:border-b-0 h-16"
+          >
             <div className="w-24 shrink-0 border-r border-border flex items-center justify-center">
               <Skeleton className="h-3 w-12" />
             </div>
@@ -306,7 +325,7 @@ const GanttSkeleton = () => (
                   className="h-10 rounded-lg"
                   style={{
                     marginLeft: `${(day * 7) % 30}%`,
-                    width: `${30 + (day * 5) % 30}%`,
+                    width: `${30 + ((day * 5) % 30)}%`,
                   }}
                 />
               )}
@@ -363,7 +382,11 @@ const ScheduleForm = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="sched-branch">สาขา *</Label>
-            <Select value={form.branchId} onValueChange={set("branchId")} required>
+            <Select
+              value={form.branchId}
+              onValueChange={set("branchId")}
+              required
+            >
               <SelectTrigger id="sched-branch" className="w-full">
                 <SelectValue placeholder="เลือกสาขา" />
               </SelectTrigger>
@@ -379,7 +402,11 @@ const ScheduleForm = ({
 
           <div className="space-y-1.5">
             <Label htmlFor="sched-doctor">หมอ *</Label>
-            <Select value={form.doctorId} onValueChange={set("doctorId")} required>
+            <Select
+              value={form.doctorId}
+              onValueChange={set("doctorId")}
+              required
+            >
               <SelectTrigger id="sched-doctor" className="w-full">
                 <SelectValue placeholder="เลือกหมอ" />
               </SelectTrigger>
@@ -395,7 +422,11 @@ const ScheduleForm = ({
 
           <div className="space-y-1.5">
             <Label htmlFor="sched-day">วัน *</Label>
-            <Select value={form.dayOfWeek} onValueChange={set("dayOfWeek")} required>
+            <Select
+              value={form.dayOfWeek}
+              onValueChange={set("dayOfWeek")}
+              required
+            >
               <SelectTrigger id="sched-day" className="w-full">
                 <SelectValue placeholder="เลือกวัน" />
               </SelectTrigger>

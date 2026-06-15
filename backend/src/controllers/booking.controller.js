@@ -6,22 +6,33 @@ import {
 } from "../utils/booking.helper.js";
 import logger from "../utils/logger.js";
 
+const VALID_TRANSITIONS = {
+  PENDING:     ["CONFIRMED", "CANCELLED"],
+  CONFIRMED:   ["COMPLETED", "CANCELLED", "NO_SHOW"],
+  COMPLETED:   [],
+  CANCELLED:   [],
+  NO_SHOW:     [],
+  RESCHEDULED: [],
+};
+
 export const getBookings = async (req, res) => {
   try {
-    const { branchId, doctorId, date, status } = req.query;
+    const { branchId, doctorId, date, startDate, endDate, status } = req.query;
     const effectiveBranchId = req.user.role === "STAFF" ? req.user.branchId : branchId;
+
+    let dateFilter = {};
+    if (date) {
+      dateFilter = { date: { gte: new Date(`${date}T00:00:00.000Z`), lte: new Date(`${date}T23:59:59.999Z`) } };
+    } else if (startDate && endDate) {
+      dateFilter = { date: { gte: new Date(`${startDate}T00:00:00.000Z`), lte: new Date(`${endDate}T23:59:59.999Z`) } };
+    }
 
     const bookings = await prisma.booking.findMany({
       where: {
+        ...dateFilter,
         ...(effectiveBranchId && { branchId: Number(effectiveBranchId) }),
         ...(doctorId && { doctorId: Number(doctorId) }),
         ...(status && { status }),
-        ...(date && {
-          date: {
-            gte: new Date(`${date}T00:00:00.000Z`),
-            lte: new Date(`${date}T23:59:59.999Z`),
-          },
-        }),
       },
       include: {
         patient: true,
@@ -227,10 +238,15 @@ export const updateBookingStatus = async (req, res) => {
       where: { id: Number(id) },
     });
     if (!existing) {
-      logger.warn("Update booking status failed - not found", {
-        bookingId: id,
-      });
+      logger.warn("Update booking status failed - not found", { bookingId: id });
       return res.status(404).json({ message: "ไม่พบการจองที่ต้องการอัปเดต" });
+    }
+
+    const allowed = VALID_TRANSITIONS[existing.status] ?? [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
+        message: `ไม่สามารถเปลี่ยนสถานะจาก ${existing.status} เป็น ${status} ได้`,
+      });
     }
 
     const booking = await prisma.booking.update({

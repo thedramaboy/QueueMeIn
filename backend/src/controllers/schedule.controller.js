@@ -4,11 +4,13 @@ import logger from "../utils/logger.js";
 export const getSchedules = async (req, res) => {
   try {
     const { branchId, doctorId, dayOfWeek } = req.query;
+    const effectiveBranchId =
+      req.user.role === "STAFF" ? req.user.branchId : branchId;
 
     const schedules = await prisma.schedule.findMany({
       where: {
         isActive: true,
-        ...(branchId && { branchId: Number(branchId) }),
+        ...(effectiveBranchId && { branchId: Number(effectiveBranchId) }),
         ...(doctorId && { doctorId: Number(doctorId) }),
         ...(dayOfWeek && { dayOfWeek: Number(dayOfWeek) }),
       },

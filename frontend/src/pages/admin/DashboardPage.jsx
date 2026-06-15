@@ -1,18 +1,47 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { bookingService } from "../../services/booking.service.js";
-import { patientService } from "../../services/patient.service.js";
-import { CalendarDays, Users, UserCheck, Clock } from "lucide-react";
+import { reportService } from "../../services/report.service.js";
+import { CalendarDays, Users, TrendingUp, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataGrid } from "@mui/x-data-grid";
 import StatusBadge from "@/components/shared/StatusBadge";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
-import TableSkeleton, {
-  StatCardSkeleton,
-} from "@/components/shared/TableSkeleton";
+import TableSkeleton, { StatCardSkeleton } from "@/components/shared/TableSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { datagridSx } from "@/lib/datagrid";
+import { formatCurrency } from "@/lib/utils";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
+
+const STATUS_COLORS = {
+  PENDING:     "#f59e0b",
+  CONFIRMED:   "#3b82f6",
+  COMPLETED:   "#22c55e",
+  CANCELLED:   "#ef4444",
+  NO_SHOW:     "#9ca3af",
+  RESCHEDULED: "#a855f7",
+};
+
+const STATUS_LABELS = {
+  PENDING:     "รอยืนยัน",
+  CONFIRMED:   "ยืนยัน",
+  COMPLETED:   "เสร็จสิ้น",
+  CANCELLED:   "ยกเลิก",
+  NO_SHOW:     "ไม่มา",
+  RESCHEDULED: "เลื่อนนัด",
+};
 
 const StatCard = ({ label, value, icon: Icon, iconClassName }) => (
   <Card>
@@ -28,50 +57,48 @@ const StatCard = ({ label, value, icon: Icon, iconClassName }) => (
   </Card>
 );
 
+const ChartSkeleton = ({ height = 220 }) => (
+  <Skeleton className="w-full rounded-lg" style={{ height }} />
+);
+
 const DashboardPage = () => {
-  const today = format(new Date(), "yyyy-MM-dd");
-
-  const { data: todayBookings = [], isLoading: loadingBookings } = useQuery({
-    queryKey: ["bookings", "today"],
-    queryFn: () => bookingService.getAll({ date: today }),
+  const { data, isLoading } = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: () => reportService.getDashboard(),
   });
-
-  const { data: patients = [], isLoading: loadingPatients } = useQuery({
-    queryKey: ["patients"],
-    queryFn: () => patientService.getAll(),
-  });
-
-  const newPatients = patients.filter((p) => p.isNewPatient).length;
-  const pendingCount = todayBookings.filter(
-    (b) => b.status === "PENDING",
-  ).length;
 
   const stats = [
     {
       label: "การจองวันนี้",
-      value: todayBookings.length,
+      value: data?.todayCount ?? 0,
       icon: CalendarDays,
       iconClassName: "bg-primary",
     },
     {
       label: "รอยืนยัน",
-      value: pendingCount,
+      value: data?.pendingCount ?? 0,
       icon: Clock,
       iconClassName: "bg-amber-500",
     },
     {
       label: "ลูกค้าทั้งหมด",
-      value: patients.length,
+      value: data?.totalPatients ?? 0,
       icon: Users,
       iconClassName: "bg-green-600",
     },
     {
-      label: "ลูกค้าใหม่วันนี้",
-      value: newPatients,
-      icon: UserCheck,
+      label: "รายได้เดือนนี้",
+      value: data?.monthRevenue ? `฿${formatCurrency(data.monthRevenue)}` : "฿0",
+      icon: TrendingUp,
       iconClassName: "bg-accent",
     },
   ];
+
+  const pieData = (data?.statusBreakdown ?? []).map((s) => ({
+    name: STATUS_LABELS[s.status] ?? s.status,
+    value: s.count,
+    color: STATUS_COLORS[s.status] ?? "#94a3b8",
+  }));
 
   return (
     <div className="space-y-6">
@@ -80,24 +107,106 @@ const DashboardPage = () => {
         subtitle={format(new Date(), "EEEE dd MMMM yyyy", { locale: th })}
       />
 
+      {/* Stat cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {loadingBookings || loadingPatients
+        {isLoading
           ? Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)
           : stats.map((stat) => <StatCard key={stat.label} {...stat} />)}
       </div>
 
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Monthly volume bar chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">การจองรายเดือน (12 เดือนล่าสุด)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <ChartSkeleton height={220} />
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data?.monthlyVolume ?? []} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                    formatter={(v) => [v, "การจอง"]}
+                  />
+                  <Bar dataKey="count" fill="var(--color-primary, #0F7E86)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Status breakdown pie chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">สถานะการจองเดือนนี้</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <ChartSkeleton height={220} />
+            ) : pieData.length === 0 ? (
+              <div className="flex items-center justify-center h-[220px]">
+                <p className="text-sm text-muted-foreground">ไม่มีข้อมูล</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                    formatter={(v, n) => [v, n]}
+                  />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 11 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Today's bookings table */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">การจองวันนี้</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {loadingBookings ? (
+          {isLoading ? (
             <TableSkeleton cols={5} rows={4} />
-          ) : todayBookings.length === 0 ? (
+          ) : (data?.todayBookings ?? []).length === 0 ? (
             <EmptyState message="ไม่มีการจองวันนี้" />
           ) : (
             <DataGrid
-              rows={todayBookings}
+              rows={data.todayBookings}
               columns={[
                 {
                   field: "time",
@@ -109,8 +218,7 @@ const DashboardPage = () => {
                   field: "patient",
                   headerName: "ลูกค้า",
                   flex: 1,
-                  valueGetter: (_, row) =>
-                    row.patient?.nickname || row.patient?.firstName,
+                  valueGetter: (_, row) => row.patient?.nickname || row.patient?.firstName,
                 },
                 {
                   field: "service",
@@ -128,9 +236,7 @@ const DashboardPage = () => {
                   field: "status",
                   headerName: "สถานะ",
                   width: 130,
-                  renderCell: (params) => (
-                    <StatusBadge status={params.row.status} />
-                  ),
+                  renderCell: (params) => <StatusBadge status={params.row.status} />,
                 },
               ]}
               autoHeight

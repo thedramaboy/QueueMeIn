@@ -8,7 +8,7 @@ import { doctorService } from "../../services/doctor.service.js";
 import { branchService } from "../../services/branch.service.js";
 import { serviceService } from "../../services/service.service.js";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, X } from "lucide-react";
+import { Plus, Search, Pencil, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import PageHeader from "@/components/shared/PageHeader";
 import StatusBadge from "@/components/shared/StatusBadge";
@@ -52,9 +49,10 @@ import EmptyState from "@/components/shared/EmptyState";
 
 const HOUR_START = 8;
 const HOUR_END = 20;
-const TOTAL_MINUTES = (HOUR_END - HOUR_START) * 60;
-const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
-const ROW_HEIGHT = 64;
+const TOTAL_HOURS = HOUR_END - HOUR_START;
+const PX_PER_HOUR = 96;
+const HOURS = Array.from({ length: TOTAL_HOURS }, (_, i) => HOUR_START + i);
+const DAY_ABBR = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
 const STATUS_BLOCK = {
   PENDING:     "bg-amber-50 border-amber-400 text-amber-900",
@@ -65,130 +63,6 @@ const STATUS_BLOCK = {
   RESCHEDULED: "bg-purple-50 border-purple-400 text-purple-900 opacity-60",
 };
 
-const timeToMinutes = (t) => {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-};
-
-const getBlockStyle = (booking) => {
-  const startMin = Math.max(0, timeToMinutes(booking.startTime) - HOUR_START * 60);
-  const endMin = Math.min(TOTAL_MINUTES, timeToMinutes(booking.endTime) - HOUR_START * 60);
-  return {
-    left: `${(startMin / TOTAL_MINUTES) * 100}%`,
-    width: `${Math.max(1, ((endMin - startMin) / TOTAL_MINUTES) * 100)}%`,
-  };
-};
-
-const GanttSkeleton = () => (
-  <Card>
-    <CardContent className="p-0">
-      <div className="min-w-[700px]">
-        <div className="flex border-b border-border h-9">
-          <div className="w-36 shrink-0 border-r border-border/40" />
-          <Skeleton className="flex-1 m-2 rounded" />
-        </div>
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex border-b border-border/30" style={{ minHeight: ROW_HEIGHT }}>
-            <div className="w-36 shrink-0 border-r border-border/40 p-3 flex items-center">
-              <Skeleton className="h-3 w-24" />
-            </div>
-            <div className="flex-1 p-2 flex items-center">
-              <Skeleton className="h-10 rounded" style={{ width: `${20 + i * 10}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const BookingGantt = ({ bookings, isLoading, onBookingClick }) => {
-  const doctorRows = useMemo(() => {
-    const map = new Map();
-    for (const b of bookings) {
-      const key = b.doctor?.id ?? 0;
-      if (!map.has(key)) map.set(key, { doctor: b.doctor, bookings: [] });
-      map.get(key).bookings.push(b);
-    }
-    return Array.from(map.values());
-  }, [bookings]);
-
-  if (isLoading) return <GanttSkeleton />;
-  if (bookings.length === 0) return <EmptyState message="ไม่มีการจองวันนี้" />;
-
-  return (
-    <Card>
-      <CardContent className="p-0 overflow-x-auto">
-        <div className="min-w-[700px]">
-          {/* Hour header */}
-          <div className="flex border-b border-border">
-            <div className="w-36 shrink-0 border-r border-border/40" />
-            <div className="flex-1 flex">
-              {HOURS.map((h) => (
-                <div
-                  key={h}
-                  className="flex-1 text-xs text-muted-foreground py-2 pl-1 border-l border-border/40 font-mono"
-                >
-                  {h}:00
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Doctor rows */}
-          {doctorRows.map(({ doctor, bookings: rowBookings }) => (
-            <div
-              key={doctor?.id}
-              className="flex border-b border-border/30 last:border-0"
-              style={{ minHeight: ROW_HEIGHT }}
-            >
-              {/* Doctor name */}
-              <div className="w-36 shrink-0 sticky left-0 bg-card flex items-center px-3 border-r border-border/40 z-10">
-                <p className="text-xs font-medium leading-tight">{doctor?.name}</p>
-              </div>
-
-              {/* Time area */}
-              <div className="flex-1 relative" style={{ minHeight: ROW_HEIGHT }}>
-                {/* Grid lines */}
-                <div className="absolute inset-0 flex pointer-events-none">
-                  {HOURS.map((h) => (
-                    <div key={h} className="flex-1 border-l border-border/30" />
-                  ))}
-                </div>
-
-                {/* Booking blocks */}
-                {rowBookings.map((booking) => {
-                  const { left, width } = getBlockStyle(booking);
-                  return (
-                    <div
-                      key={booking.id}
-                      className={cn(
-                        "absolute top-2 bottom-2 rounded border cursor-pointer px-2 py-1 overflow-hidden",
-                        "hover:brightness-95 transition-all",
-                        STATUS_BLOCK[booking.status] ?? STATUS_BLOCK.PENDING,
-                      )}
-                      style={{ left, width }}
-                      onClick={() => onBookingClick(booking)}
-                    >
-                      <p className="text-xs font-semibold truncate leading-tight">
-                        {booking.patient?.nickname || booking.patient?.firstName}{" "}
-                        {booking.patient?.lastName}
-                      </p>
-                      <p className="text-xs font-mono truncate opacity-75">
-                        {booking.startTime}–{booking.endTime}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 const STATUSES = [
   { value: "PENDING",   label: "รอยืนยัน" },
   { value: "CONFIRMED", label: "ยืนยันแล้ว" },
@@ -197,36 +71,284 @@ const STATUSES = [
   { value: "NO_SHOW",   label: "ไม่มา" },
 ];
 
+const timeToMinutes = (t) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+const timeToTop = (t) =>
+  (Math.max(0, timeToMinutes(t) - HOUR_START * 60) / 60) * PX_PER_HOUR;
+const timeToDuration = (start, end) =>
+  (Math.max(0, timeToMinutes(end) - timeToMinutes(start)) / 60) * PX_PER_HOUR;
+
+function layoutItems(items, getStart, getEnd) {
+  const sorted = [...items].sort((a, b) => getStart(a) - getStart(b));
+  const result = sorted.map((item) => ({ item, lane: 0, total: 1 }));
+  let i = 0;
+  while (i < result.length) {
+    let maxEnd = getEnd(result[i].item);
+    let j = i + 1;
+    while (j < result.length && getStart(result[j].item) < maxEnd) {
+      maxEnd = Math.max(maxEnd, getEnd(result[j].item));
+      j++;
+    }
+    const count = j - i;
+    for (let k = i; k < j; k++) {
+      result[k].lane = k - i;
+      result[k].total = count;
+    }
+    i = j;
+  }
+  return result;
+}
+
+const WeekGridSkeleton = () => (
+  <Card className="overflow-hidden">
+    <CardContent className="p-0">
+      <div className="flex border-b border-border h-12">
+        <div className="w-14 shrink-0 border-r border-border" />
+        {Array.from({ length: 7 }, (_, i) => (
+          <div key={i} className="flex-1 border-l border-border p-2 text-center">
+            <Skeleton className="h-2.5 w-5 mx-auto mb-1" />
+            <Skeleton className="h-5 w-6 mx-auto" />
+          </div>
+        ))}
+      </div>
+      <div className="flex" style={{ height: 320 }}>
+        <div className="w-14 shrink-0 border-r border-border" />
+        {Array.from({ length: 7 }, (_, i) => (
+          <div key={i} className="flex-1 relative border-l border-border p-1.5">
+            {i % 3 === 0 && <Skeleton className="absolute rounded h-14" style={{ top: 80, left: 3, right: 3 }} />}
+            {i % 3 === 1 && <Skeleton className="absolute rounded h-9" style={{ top: 148, left: 3, right: 3 }} />}
+            {i % 3 === 2 && <Skeleton className="absolute rounded h-10" style={{ top: 200, left: 3, right: 3 }} />}
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const WeeklyGrid = ({ days, bookingsByDay, isLoading, onBookingClick }) => {
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  if (isLoading) return <WeekGridSkeleton />;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 230px)" }}>
+          <div style={{ minWidth: 540 }}>
+            {/* Sticky header */}
+            <div className="flex sticky top-0 z-20 bg-card border-b border-border shadow-sm">
+              <div className="w-14 shrink-0 border-r border-border" />
+              {days.map((day) => {
+                const str = format(day, "yyyy-MM-dd");
+                const isToday = str === today;
+                return (
+                  <div
+                    key={str}
+                    className={cn(
+                      "flex-1 text-center py-1.5 border-l border-border",
+                      isToday && "bg-primary/5",
+                    )}
+                  >
+                    <div className={cn("text-[10px] font-medium", isToday ? "text-primary" : "text-muted-foreground")}>
+                      {DAY_ABBR[day.getDay()]}
+                    </div>
+                    <div className={cn("text-sm font-bold leading-tight", isToday ? "text-primary" : "text-foreground")}>
+                      {format(day, "d")}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Grid body */}
+            <div className="flex">
+              {/* Time gutter */}
+              <div
+                className="w-14 shrink-0 sticky left-0 z-10 bg-card border-r border-border"
+                style={{ height: TOTAL_HOURS * PX_PER_HOUR }}
+              >
+                {HOURS.map((h) => (
+                  <div
+                    key={h}
+                    className="relative border-t border-border/40"
+                    style={{ height: PX_PER_HOUR }}
+                  >
+                    <span className="absolute -top-2 right-2 text-[10px] text-muted-foreground font-mono select-none">
+                      {String(h).padStart(2, "0")}:00
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Day columns */}
+              {days.map((day) => {
+                const str = format(day, "yyyy-MM-dd");
+                const isToday = str === today;
+                const dayBookings = bookingsByDay[str] ?? [];
+                const laid = layoutItems(
+                  dayBookings,
+                  (b) => timeToMinutes(b.startTime),
+                  (b) => timeToMinutes(b.endTime),
+                );
+
+                return (
+                  <div
+                    key={str}
+                    className={cn(
+                      "flex-1 relative border-l border-border",
+                      isToday && "bg-primary/[0.02]",
+                    )}
+                    style={{ height: TOTAL_HOURS * PX_PER_HOUR }}
+                  >
+                    {HOURS.map((h) => (
+                      <div
+                        key={h}
+                        className="absolute left-0 right-0 border-t border-border/40"
+                        style={{ top: (h - HOUR_START) * PX_PER_HOUR }}
+                      />
+                    ))}
+                    {HOURS.map((h) => (
+                      <div
+                        key={`${h}h`}
+                        className="absolute left-0 right-0 border-t border-border/20"
+                        style={{ top: (h - HOUR_START) * PX_PER_HOUR + PX_PER_HOUR / 2 }}
+                      />
+                    ))}
+
+                    {laid.map(({ item: b, lane, total }) => {
+                      const top = timeToTop(b.startTime);
+                      const height = Math.max(22, timeToDuration(b.startTime, b.endTime));
+                      const widthPct = 100 / total;
+                      const leftPct = lane * widthPct;
+                      return (
+                        <div
+                          key={b.id}
+                          className={cn(
+                            "absolute rounded border text-[10px] cursor-pointer overflow-hidden px-1.5 leading-snug",
+                            "hover:brightness-95 transition-all select-none",
+                            STATUS_BLOCK[b.status] ?? STATUS_BLOCK.PENDING,
+                          )}
+                          style={{
+                            top: top + 1,
+                            height: height - 2,
+                            left: `calc(${leftPct}% + 2px)`,
+                            width: `calc(${widthPct}% - 4px)`,
+                          }}
+                          onClick={() => onBookingClick(b)}
+                        >
+                          <div className="font-semibold truncate pt-0.5">
+                            {b.patient?.nickname || b.patient?.firstName}
+                          </div>
+                          {height >= 26 && (
+                            <div className="truncate opacity-75 font-mono">
+                              {b.startTime}–{b.endTime}
+                            </div>
+                          )}
+                          {height >= 40 && (
+                            <div className="truncate opacity-65">
+                              {b.service?.name}
+                            </div>
+                          )}
+                          {height >= 68 && (
+                            <div className="truncate opacity-55">
+                              {b.doctor?.name?.replace(/^(นพ\.|พญ\.)/, "")}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {dayBookings.length === 0 && (
+                      <div
+                        className="absolute left-0 right-0 flex items-center justify-center pointer-events-none"
+                        style={{ top: PX_PER_HOUR, height: PX_PER_HOUR }}
+                      >
+                        <span className="text-[10px] text-muted-foreground/40">—</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const BookingsPage = () => {
   const queryClient = useQueryClient();
-  const [calDate, setCalDate] = useState(new Date());
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+  });
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(null);
   const [filters, setFilters] = useState({ branchId: "", doctorId: "", status: "" });
 
-  const date = format(calDate, "yyyy-MM-dd");
+  const days = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        return d;
+      }),
+    [weekStart],
+  );
+
+  const weekEndDate = days[6];
+  const startDate = format(weekStart, "yyyy-MM-dd");
+  const endDate = format(weekEndDate, "yyyy-MM-dd");
   const hasFilter = filters.branchId || filters.doctorId || filters.status;
 
   const { data: branches = [] } = useQuery({
     queryKey: ["branches"],
-    queryFn: branchService.getAll,
+    queryFn: () => branchService.getAll(),
   });
 
   const { data: doctors = [] } = useQuery({
     queryKey: ["doctors"],
-    queryFn: doctorService.getAll,
+    queryFn: () => doctorService.getAll(),
   });
 
-  const { data: bookings = [], isLoading } = useQuery({
-    queryKey: ["bookings", date, filters.branchId, filters.doctorId, filters.status],
-    queryFn: () => bookingService.getAll({
-      date,
-      ...(filters.branchId && { branchId: filters.branchId }),
-      ...(filters.doctorId && { doctorId: filters.doctorId }),
-      ...(filters.status   && { status: filters.status }),
-    }),
+  const { data: bookings = [], isLoading, isFetching } = useQuery({
+    queryKey: ["bookings", startDate, endDate, filters.branchId, filters.doctorId, filters.status],
+    queryFn: () =>
+      bookingService.getAll({
+        startDate,
+        endDate,
+        ...(filters.branchId && { branchId: filters.branchId }),
+        ...(filters.doctorId && { doctorId: filters.doctorId }),
+        ...(filters.status   && { status: filters.status }),
+      }),
   });
+
+  const bookingsByDay = useMemo(() => {
+    const map = {};
+    for (const b of bookings) {
+      const key = format(new Date(b.date), "yyyy-MM-dd");
+      if (!map[key]) map[key] = [];
+      map[key].push(b);
+    }
+    return map;
+  }, [bookings]);
+
+  const prevWeek = () =>
+    setWeekStart((d) => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; });
+  const nextWeek = () =>
+    setWeekStart((d) => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; });
+  const goToday = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - d.getDay());
+    setWeekStart(d);
+  };
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }) => bookingService.updateStatus(id, status),
@@ -265,11 +387,13 @@ const BookingsPage = () => {
     createMutation.error?.response?.data?.message ||
     updateMutation.error?.response?.data?.message;
 
+  const weekLabel = `${format(weekStart, "d MMM", { locale: th })} – ${format(weekEndDate, "d MMM yyyy", { locale: th })}`;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="การจอง"
-        subtitle={format(calDate, "EEEE dd MMMM yyyy", { locale: th })}
+        subtitle={weekLabel}
         action={
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -278,93 +402,87 @@ const BookingsPage = () => {
         }
       />
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Left: Calendar */}
-        <div className="md:w-80 shrink-0">
-          <Card>
-            <CardContent className="p-1">
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={th}>
-                <DateCalendar
-                  value={calDate}
-                  onChange={(d) => d && setCalDate(d)}
-                  sx={{ width: "100%" }}
-                />
-              </LocalizationProvider>
-            </CardContent>
-          </Card>
-          <p className="text-sm text-muted-foreground mt-2 px-1">
-            {bookings.length} การจอง
-          </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1 mr-1">
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevWeek}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={goToday}>
+            สัปดาห์นี้
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextWeek}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Right: Filter bar + Gantt */}
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <Select
-              value={filters.branchId || "all"}
-              onValueChange={(v) => setFilters((f) => ({ ...f, branchId: v === "all" ? "" : v }))}
-            >
-              <SelectTrigger className="h-8 w-36 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกสาขา</SelectItem>
-                {branches.map((b) => (
-                  <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <Select
+          value={filters.branchId || "all"}
+          onValueChange={(v) => setFilters((f) => ({ ...f, branchId: v === "all" ? "" : v }))}
+        >
+          <SelectTrigger className="h-8 w-36 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกสาขา</SelectItem>
+            {branches.map((b) => (
+              <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <Select
-              value={filters.doctorId || "all"}
-              onValueChange={(v) => setFilters((f) => ({ ...f, doctorId: v === "all" ? "" : v }))}
-            >
-              <SelectTrigger className="h-8 w-44 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกหมอ</SelectItem>
-                {doctors.map((d) => (
-                  <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <Select
+          value={filters.doctorId || "all"}
+          onValueChange={(v) => setFilters((f) => ({ ...f, doctorId: v === "all" ? "" : v }))}
+        >
+          <SelectTrigger className="h-8 w-44 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกหมอ</SelectItem>
+            {doctors.map((d) => (
+              <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            <Select
-              value={filters.status || "all"}
-              onValueChange={(v) => setFilters((f) => ({ ...f, status: v === "all" ? "" : v }))}
-            >
-              <SelectTrigger className="h-8 w-32 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">ทุกสถานะ</SelectItem>
-                {STATUSES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <Select
+          value={filters.status || "all"}
+          onValueChange={(v) => setFilters((f) => ({ ...f, status: v === "all" ? "" : v }))}
+        >
+          <SelectTrigger className="h-8 w-32 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">ทุกสถานะ</SelectItem>
+            {STATUSES.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-            {hasFilter && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-muted-foreground"
-                onClick={() => setFilters({ branchId: "", doctorId: "", status: "" })}
-              >
-                <X className="h-3.5 w-3.5 mr-1" />
-                ล้าง
-              </Button>
-            )}
-          </div>
+        {hasFilter && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-muted-foreground"
+            onClick={() => setFilters({ branchId: "", doctorId: "", status: "" })}
+          >
+            <X className="h-3.5 w-3.5 mr-1" />
+            ล้าง
+          </Button>
+        )}
 
-          <BookingGantt
-            bookings={bookings}
-            isLoading={isLoading}
-            onBookingClick={setSelected}
-          />
-        </div>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {bookings.length} รายการ
+        </span>
       </div>
+
+      <WeeklyGrid
+        days={days}
+        bookingsByDay={bookingsByDay}
+        isLoading={isLoading || isFetching}
+        onBookingClick={setSelected}
+      />
 
       <BookingForm
         key={editing?.id ?? "create"}
@@ -380,7 +498,7 @@ const BookingsPage = () => {
         }}
         isLoading={createMutation.isPending || updateMutation.isPending}
         error={formError}
-        defaultDate={date}
+        defaultDate={startDate}
         booking={editing}
       />
 
@@ -428,12 +546,12 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
 
   const { data: doctors = [] } = useQuery({
     queryKey: ["doctors"],
-    queryFn: doctorService.getAll,
+    queryFn: () => doctorService.getAll(),
   });
 
   const { data: branches = [] } = useQuery({
     queryKey: ["branches"],
-    queryFn: branchService.getAll,
+    queryFn: () => branchService.getAll(),
   });
 
   const { data: services = [] } = useQuery({
@@ -470,7 +588,6 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Patient search combobox */}
           <div className="space-y-1.5">
             <Label>ค้นหาลูกค้า *</Label>
             {isEdit ? (
@@ -478,11 +595,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
             ) : (
               <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    className="w-full justify-between font-normal"
-                  >
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                     {patientDisplay || "พิมพ์ชื่อหรือเบอร์โทร"}
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
@@ -506,12 +619,8 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
                             value={`${p.firstName} ${p.lastName} ${p.phone}`}
                             onSelect={() => {
                               setForm((f) => ({ ...f, patientId: p.id }));
-                              setPatientDisplay(
-                                `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
-                              );
-                              setPatientSearch(
-                                `${p.nickname || p.firstName} ${p.lastName} (${p.phone})`,
-                              );
+                              setPatientDisplay(`${p.nickname || p.firstName} ${p.lastName} (${p.phone})`);
+                              setPatientSearch(`${p.nickname || p.firstName} ${p.lastName} (${p.phone})`);
                               setPatientPopoverOpen(false);
                             }}
                           >
@@ -535,9 +644,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
                 </SelectTrigger>
                 <SelectContent>
                   {branches.map((b) => (
-                    <SelectItem key={b.id} value={String(b.id)}>
-                      {b.name}
-                    </SelectItem>
+                    <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -550,9 +657,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
                 </SelectTrigger>
                 <SelectContent>
                   {doctors.map((d) => (
-                    <SelectItem key={d.id} value={String(d.id)}>
-                      {d.name}
-                    </SelectItem>
+                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -633,12 +738,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
               ยกเลิก
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
@@ -659,10 +759,10 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
   const [payForm, setPayForm] = useState({ paidAmount: "", paymentMethod: "CASH" });
 
   const statuses = [
-    { value: "CONFIRMED",  label: "ยืนยันนัด" },
-    { value: "COMPLETED",  label: "เสร็จแล้ว" },
-    { value: "CANCELLED",  label: "ยกเลิก" },
-    { value: "NO_SHOW",    label: "ไม่มา" },
+    { value: "CONFIRMED", label: "ยืนยันนัด" },
+    { value: "COMPLETED", label: "เสร็จแล้ว" },
+    { value: "CANCELLED", label: "ยกเลิก" },
+    { value: "NO_SHOW",   label: "ไม่มา" },
   ];
 
   const handlePaySubmit = (e) => {
@@ -675,37 +775,25 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>รายละเอียดการจอง</DialogTitle>
-          {booking && (
-            <p className="text-xs text-muted-foreground">{booking.bookingNo}</p>
-          )}
+          {booking && <p className="text-xs text-muted-foreground">{booking.bookingNo}</p>}
         </DialogHeader>
 
         {booking && (
           <>
             <div className="divide-y divide-border">
-              <DetailRow
-                label="ลูกค้า"
-                value={`${booking.patient?.firstName} ${booking.patient?.lastName}`}
-              />
+              <DetailRow label="ลูกค้า" value={`${booking.patient?.firstName} ${booking.patient?.lastName}`} />
               <DetailRow label="ชื่อเล่น" value={booking.patient?.nickname || "-"} />
               <DetailRow label="เวลา" value={`${booking.startTime} – ${booking.endTime}`} />
               <DetailRow label="หัตถการ" value={booking.service?.name} />
               <DetailRow label="หมอ" value={booking.doctor?.name} />
               <DetailRow label="สาขา" value={booking.branch?.name} />
-              <DetailRow
-                label="มัดจำ"
-                value={booking.deposit ? `฿${formatCurrency(booking.deposit)}` : "-"}
-              />
+              <DetailRow label="มัดจำ" value={booking.deposit ? `฿${formatCurrency(booking.deposit)}` : "-"} />
               <DetailRow label="หมายเหตุ" value={booking.note || "-"} />
               {booking.treatmentNote && (
                 <DetailRow label="บันทึกการรักษา" value={booking.treatmentNote} />
               )}
               {booking.patient?.allergyHistory && (
-                <DetailRow
-                  label="แพ้ยา"
-                  value={booking.patient.allergyHistory}
-                  valueClassName="text-destructive"
-                />
+                <DetailRow label="แพ้ยา" value={booking.patient.allergyHistory} valueClassName="text-destructive" />
               )}
               <div className="flex items-center justify-between py-2.5 gap-4">
                 <span className="text-sm text-muted-foreground shrink-0">สถานะ</span>
@@ -713,7 +801,6 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
               </div>
             </div>
 
-            {/* Payment section */}
             {booking.paidAmount ? (
               <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5">
                 <p className="text-sm font-semibold text-green-700">ชำระเงินแล้ว</p>
