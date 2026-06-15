@@ -33,6 +33,10 @@ app.get("/", (req, res) => {
   res.json({ message: "Clinic Booking API" });
 });
 
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", ts: new Date().toISOString() });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/branches", branchRoutes);
