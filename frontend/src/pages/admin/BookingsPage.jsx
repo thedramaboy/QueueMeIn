@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { th } from "date-fns/locale";
 import { bookingService } from "../../services/booking.service.js";
 import { patientService } from "../../services/patient.service.js";
 import { doctorService } from "../../services/doctor.service.js";
@@ -52,7 +51,7 @@ const HOUR_END = 20;
 const TOTAL_HOURS = HOUR_END - HOUR_START;
 const PX_PER_HOUR = 96;
 const HOURS = Array.from({ length: TOTAL_HOURS }, (_, i) => HOUR_START + i);
-const DAY_ABBR = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const STATUS_BLOCK = {
   PENDING:     "bg-amber-50 border-amber-400 text-amber-900",
@@ -64,11 +63,11 @@ const STATUS_BLOCK = {
 };
 
 const STATUSES = [
-  { value: "PENDING",   label: "รอยืนยัน" },
-  { value: "CONFIRMED", label: "ยืนยันแล้ว" },
-  { value: "COMPLETED", label: "เสร็จสิ้น" },
-  { value: "CANCELLED", label: "ยกเลิก" },
-  { value: "NO_SHOW",   label: "ไม่มา" },
+  { value: "PENDING",   label: "Pending" },
+  { value: "CONFIRMED", label: "Confirmed" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
+  { value: "NO_SHOW",   label: "No-show" },
 ];
 
 const timeToMinutes = (t) => {
@@ -360,7 +359,7 @@ const BookingsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setShowForm(false);
-      toast.success("สร้างการจองสำเร็จ");
+      toast.success("Booking created");
     },
   });
 
@@ -369,7 +368,7 @@ const BookingsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setEditing(null);
-      toast.success("อัปเดตการจองสำเร็จ");
+      toast.success("Booking updated");
     },
   });
 
@@ -378,7 +377,7 @@ const BookingsPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setSelected(null);
-      toast.success("บันทึกการชำระเงินสำเร็จ");
+      toast.success("Payment recorded");
     },
   });
 
@@ -387,17 +386,17 @@ const BookingsPage = () => {
     createMutation.error?.response?.data?.message ||
     updateMutation.error?.response?.data?.message;
 
-  const weekLabel = `${format(weekStart, "d MMM", { locale: th })} – ${format(weekEndDate, "d MMM yyyy", { locale: th })}`;
+  const weekLabel = `${format(weekStart, "d MMM")} – ${format(weekEndDate, "d MMM yyyy")}`;
 
   return (
     <div className="space-y-4">
       <PageHeader
-        title="การจอง"
+        title="Bookings"
         subtitle={weekLabel}
         action={
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            จองคิว
+            New booking
           </Button>
         }
       />
@@ -408,7 +407,7 @@ const BookingsPage = () => {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={goToday}>
-            สัปดาห์นี้
+            This week
           </Button>
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextWeek}>
             <ChevronRight className="h-4 w-4" />
@@ -423,7 +422,7 @@ const BookingsPage = () => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทุกสาขา</SelectItem>
+            <SelectItem value="all">All branches</SelectItem>
             {branches.map((b) => (
               <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
             ))}
@@ -438,7 +437,7 @@ const BookingsPage = () => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทุกหมอ</SelectItem>
+            <SelectItem value="all">All doctors</SelectItem>
             {doctors.map((d) => (
               <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
             ))}
@@ -453,7 +452,7 @@ const BookingsPage = () => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทุกสถานะ</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
             {STATUSES.map((s) => (
               <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
             ))}
@@ -468,12 +467,12 @@ const BookingsPage = () => {
             onClick={() => setFilters({ branchId: "", doctorId: "", status: "" })}
           >
             <X className="h-3.5 w-3.5 mr-1" />
-            ล้าง
+            Clear
           </Button>
         )}
 
         <span className="ml-auto text-xs text-muted-foreground">
-          {bookings.length} รายการ
+          {bookings.length} items
         </span>
       </div>
 
@@ -578,7 +577,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "แก้ไขการจอง" : "จองคิวใหม่"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit booking" : "New booking"}</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -589,21 +588,21 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label>ค้นหาลูกค้า *</Label>
+            <Label>Search patient *</Label>
             {isEdit ? (
               <Input value={patientDisplay} disabled className="bg-muted" />
             ) : (
               <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                    {patientDisplay || "พิมพ์ชื่อหรือเบอร์โทร"}
+                    {patientDisplay || "Type name or phone"}
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-full p-0" align="start">
                   <Command>
                     <CommandInput
-                      placeholder="ค้นหาลูกค้า..."
+                      placeholder="Search patient..."
                       value={patientSearch}
                       onValueChange={(v) => {
                         setPatientSearch(v);
@@ -611,7 +610,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
                       }}
                     />
                     <CommandList>
-                      <CommandEmpty>ไม่พบลูกค้า</CommandEmpty>
+                      <CommandEmpty>No patients found</CommandEmpty>
                       <CommandGroup>
                         {patients.map((p) => (
                           <CommandItem
@@ -637,10 +636,10 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="b-branch">สาขา *</Label>
+              <Label htmlFor="b-branch">Branch *</Label>
               <Select value={form.branchId} onValueChange={set("branchId")} required>
                 <SelectTrigger id="b-branch" className="w-full">
-                  <SelectValue placeholder="เลือกสาขา" />
+                  <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
                 <SelectContent>
                   {branches.map((b) => (
@@ -650,10 +649,10 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="b-doctor">หมอ *</Label>
+              <Label htmlFor="b-doctor">Doctor *</Label>
               <Select value={form.doctorId} onValueChange={set("doctorId")} required>
                 <SelectTrigger id="b-doctor" className="w-full">
-                  <SelectValue placeholder="เลือกหมอ" />
+                  <SelectValue placeholder="Select doctor" />
                 </SelectTrigger>
                 <SelectContent>
                   {doctors.map((d) => (
@@ -665,15 +664,15 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="b-service">หัตถการ *</Label>
+            <Label htmlFor="b-service">Service *</Label>
             <Select value={form.serviceId} onValueChange={set("serviceId")} required>
               <SelectTrigger id="b-service" className="w-full">
-                <SelectValue placeholder="เลือกหัตถการ" />
+                <SelectValue placeholder="Select service" />
               </SelectTrigger>
               <SelectContent>
                 {services.map((s) => (
                   <SelectItem key={s.id} value={String(s.id)}>
-                    {s.name} ({s.duration} นาที)
+                    {s.name} ({s.duration} min)
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -682,7 +681,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="b-date">วันที่ *</Label>
+              <Label htmlFor="b-date">Date *</Label>
               <Input
                 id="b-date"
                 type="date"
@@ -692,7 +691,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="b-time">เวลาเริ่ม *</Label>
+              <Label htmlFor="b-time">Start time *</Label>
               <Input
                 id="b-time"
                 type="time"
@@ -704,7 +703,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="b-deposit">มัดจำ (บาท)</Label>
+            <Label htmlFor="b-deposit">Deposit (THB)</Label>
             <Input
               id="b-deposit"
               type="number"
@@ -715,7 +714,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="b-note">หมายเหตุ</Label>
+            <Label htmlFor="b-note">Note</Label>
             <Textarea
               id="b-note"
               value={form.note}
@@ -726,12 +725,12 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
 
           {isEdit && (
             <div className="space-y-1.5">
-              <Label htmlFor="b-treatment">บันทึกการรักษา</Label>
+              <Label htmlFor="b-treatment">Treatment note</Label>
               <Textarea
                 id="b-treatment"
                 value={form.treatmentNote}
                 onChange={(e) => set("treatmentNote")(e.target.value)}
-                placeholder="รายละเอียดการรักษาที่ดำเนินการ..."
+                placeholder="Details of the treatment performed..."
                 rows={3}
               />
             </div>
@@ -739,10 +738,10 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -751,7 +750,7 @@ const BookingForm = ({ open, onClose, onSubmit, isLoading, error, defaultDate, b
   );
 };
 
-const PAYMENT_LABELS = { CASH: "เงินสด", TRANSFER: "โอนเงิน", CARD: "บัตรเครดิต" };
+const PAYMENT_LABELS = { CASH: "Cash", TRANSFER: "Transfer", CARD: "Credit card" };
 const SKIP_PAY_STATUSES = ["CANCELLED", "NO_SHOW", "RESCHEDULED"];
 
 const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, isPaymentLoading }) => {
@@ -759,10 +758,10 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
   const [payForm, setPayForm] = useState({ paidAmount: "", paymentMethod: "CASH" });
 
   const statuses = [
-    { value: "CONFIRMED", label: "ยืนยันนัด" },
-    { value: "COMPLETED", label: "เสร็จแล้ว" },
-    { value: "CANCELLED", label: "ยกเลิก" },
-    { value: "NO_SHOW",   label: "ไม่มา" },
+    { value: "CONFIRMED", label: "Confirm" },
+    { value: "COMPLETED", label: "Completed" },
+    { value: "CANCELLED", label: "Cancelled" },
+    { value: "NO_SHOW",   label: "No-show" },
   ];
 
   const handlePaySubmit = (e) => {
@@ -774,36 +773,36 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
     <Dialog open={!!booking} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>รายละเอียดการจอง</DialogTitle>
+          <DialogTitle>Booking details</DialogTitle>
           {booking && <p className="text-xs text-muted-foreground">{booking.bookingNo}</p>}
         </DialogHeader>
 
         {booking && (
           <>
             <div className="divide-y divide-border">
-              <DetailRow label="ลูกค้า" value={`${booking.patient?.firstName} ${booking.patient?.lastName}`} />
-              <DetailRow label="ชื่อเล่น" value={booking.patient?.nickname || "-"} />
-              <DetailRow label="เวลา" value={`${booking.startTime} – ${booking.endTime}`} />
-              <DetailRow label="หัตถการ" value={booking.service?.name} />
-              <DetailRow label="หมอ" value={booking.doctor?.name} />
-              <DetailRow label="สาขา" value={booking.branch?.name} />
-              <DetailRow label="มัดจำ" value={booking.deposit ? `฿${formatCurrency(booking.deposit)}` : "-"} />
-              <DetailRow label="หมายเหตุ" value={booking.note || "-"} />
+              <DetailRow label="Patient" value={`${booking.patient?.firstName} ${booking.patient?.lastName}`} />
+              <DetailRow label="Nickname" value={booking.patient?.nickname || "-"} />
+              <DetailRow label="Time" value={`${booking.startTime} – ${booking.endTime}`} />
+              <DetailRow label="Service" value={booking.service?.name} />
+              <DetailRow label="Doctor" value={booking.doctor?.name} />
+              <DetailRow label="Branch" value={booking.branch?.name} />
+              <DetailRow label="Deposit" value={booking.deposit ? `฿${formatCurrency(booking.deposit)}` : "-"} />
+              <DetailRow label="Note" value={booking.note || "-"} />
               {booking.treatmentNote && (
-                <DetailRow label="บันทึกการรักษา" value={booking.treatmentNote} />
+                <DetailRow label="Treatment note" value={booking.treatmentNote} />
               )}
               {booking.patient?.allergyHistory && (
-                <DetailRow label="แพ้ยา" value={booking.patient.allergyHistory} valueClassName="text-destructive" />
+                <DetailRow label="Allergies" value={booking.patient.allergyHistory} valueClassName="text-destructive" />
               )}
               <div className="flex items-center justify-between py-2.5 gap-4">
-                <span className="text-sm text-muted-foreground shrink-0">สถานะ</span>
+                <span className="text-sm text-muted-foreground shrink-0">Status</span>
                 <StatusBadge status={booking.status} />
               </div>
             </div>
 
             {booking.paidAmount ? (
               <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 space-y-0.5">
-                <p className="text-sm font-semibold text-green-700">ชำระเงินแล้ว</p>
+                <p className="text-sm font-semibold text-green-700">Paid</p>
                 <p className="text-sm text-green-700">
                   ฿{formatCurrency(booking.paidAmount)} — {PAYMENT_LABELS[booking.paymentMethod]}
                 </p>
@@ -816,14 +815,14 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
                     className="w-full border-green-300 text-green-700 hover:bg-green-50"
                     onClick={() => setShowPayForm(true)}
                   >
-                    บันทึกการชำระเงิน
+                    Record payment
                   </Button>
                 ) : (
                   <form onSubmit={handlePaySubmit} className="space-y-3 border border-border rounded-lg p-3">
-                    <p className="text-sm font-medium">บันทึกการชำระเงิน</p>
+                    <p className="text-sm font-medium">Record payment</p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <Label htmlFor="pay-amount" className="text-xs">จำนวนเงิน (บาท) *</Label>
+                        <Label htmlFor="pay-amount" className="text-xs">Amount (THB) *</Label>
                         <Input
                           id="pay-amount"
                           type="number"
@@ -835,7 +834,7 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="pay-method" className="text-xs">วิธีชำระ *</Label>
+                        <Label htmlFor="pay-method" className="text-xs">Payment method *</Label>
                         <Select
                           value={payForm.paymentMethod}
                           onValueChange={(v) => setPayForm((f) => ({ ...f, paymentMethod: v }))}
@@ -844,19 +843,19 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="CASH">เงินสด</SelectItem>
-                            <SelectItem value="TRANSFER">โอนเงิน</SelectItem>
-                            <SelectItem value="CARD">บัตรเครดิต</SelectItem>
+                            <SelectItem value="CASH">Cash</SelectItem>
+                            <SelectItem value="TRANSFER">Transfer</SelectItem>
+                            <SelectItem value="CARD">Credit card</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setShowPayForm(false)}>
-                        ยกเลิก
+                        Cancel
                       </Button>
                       <Button type="submit" size="sm" className="flex-1" disabled={isPaymentLoading}>
-                        {isPaymentLoading ? "กำลังบันทึก..." : "บันทึก"}
+                        {isPaymentLoading ? "Saving..." : "Save"}
                       </Button>
                     </div>
                   </form>
@@ -865,7 +864,7 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
             )}
 
             <div>
-              <p className="text-sm font-medium mb-2">เปลี่ยนสถานะ</p>
+              <p className="text-sm font-medium mb-2">Change status</p>
               <div className="grid grid-cols-2 gap-2">
                 {statuses.map((s) => (
                   <Button
@@ -885,10 +884,10 @@ const BookingDetail = ({ booking, onClose, onEdit, onStatusChange, onPayment, is
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={onEdit}>
                 <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                แก้ไข
+                Edit
               </Button>
               <Button className="flex-1" onClick={onClose}>
-                ปิด
+                Close
               </Button>
             </div>
           </>

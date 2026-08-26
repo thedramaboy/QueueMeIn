@@ -10,9 +10,9 @@ const ConfirmDialog = ({
   open,
   onClose,
   onConfirm,
-  title = "ยืนยันการดำเนินการ",
+  title = "Confirm action",
   description,
-  confirmLabel = "ยืนยัน",
+  confirmLabel = "Confirm",
   isLoading,
 }) => (
   <Dialog open={open} onOpenChange={onClose}>
@@ -30,7 +30,7 @@ const ConfirmDialog = ({
           className="flex-1"
           onClick={onClose}
         >
-          ยกเลิก
+          Cancel
         </Button>
         <Button
           variant="destructive"
@@ -38,7 +38,7 @@ const ConfirmDialog = ({
           onClick={onConfirm}
           disabled={isLoading}
         >
-          {isLoading ? "กำลังดำเนินการ..." : confirmLabel}
+          {isLoading ? "Processing..." : confirmLabel}
         </Button>
       </div>
     </DialogContent>

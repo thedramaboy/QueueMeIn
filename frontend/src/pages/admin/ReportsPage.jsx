@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { reportService } from "../../services/report.service";
 import { format } from "date-fns";
-import { th } from "date-fns/locale";
 import { CalendarDays, Users, UserCheck, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,18 +18,18 @@ import TableSkeleton, { StatCardSkeleton } from "@/components/shared/TableSkelet
 import { datagridSx } from "@/lib/datagrid";
 
 const MONTHS = [
-  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
-  "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
-  "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+  "January", "February", "March", "April",
+  "May", "June", "July", "August",
+  "September", "October", "November", "December",
 ];
 
 const STATUS_LABEL = {
-  PENDING: "รอยืนยัน",
-  CONFIRMED: "ยืนยันแล้ว",
-  COMPLETED: "เสร็จแล้ว",
-  CANCELLED: "ยกเลิก",
-  NO_SHOW: "ไม่มา",
-  RESCHEDULED: "เลื่อนนัด",
+  PENDING: "Pending",
+  CONFIRMED: "Confirmed",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+  NO_SHOW: "No-show",
+  RESCHEDULED: "Rescheduled",
 };
 
 const StatCard = ({ label, value, icon: Icon, iconClassName }) => (
@@ -66,7 +65,7 @@ const ReportsPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="รายงาน"
+        title="Reports"
         subtitle={`${MONTHS[month - 1]} ${year + 543}`}
         action={
           <div className="flex gap-2">
@@ -113,25 +112,25 @@ const ReportsPage = () => {
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <StatCard
-              label="การจองทั้งหมด"
+              label="Total bookings"
               value={summary?.totalBookings || 0}
               icon={CalendarDays}
               iconClassName="bg-primary"
             />
             <StatCard
-              label="ลูกค้าใหม่"
+              label="New patients"
               value={summary?.newPatients || 0}
               icon={UserPlus}
               iconClassName="bg-green-600"
             />
             <StatCard
-              label="ลูกค้าเก่ากลับมา"
+              label="Returning patients"
               value={summary?.returningPatients || 0}
               icon={UserCheck}
               iconClassName="bg-accent"
             />
             <StatCard
-              label="ลูกค้าทั้งหมด"
+              label="Total patients"
               value={
                 (summary?.newPatients || 0) + (summary?.returningPatients || 0)
               }
@@ -143,7 +142,7 @@ const ReportsPage = () => {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card>
               <CardContent className="p-6">
-                <p className="text-base font-semibold mb-4">การจองแยกตามสถานะ</p>
+                <p className="text-base font-semibold mb-4">Bookings by status</p>
                 <div className="space-y-3">
                   {summary?.bookingsByStatus?.map((item) => (
                     <div
@@ -153,7 +152,7 @@ const ReportsPage = () => {
                       <span className="text-sm text-muted-foreground">
                         {STATUS_LABEL[item.status] || item.status}
                       </span>
-                      <span className="font-semibold">{item.count} ครั้ง</span>
+                      <span className="font-semibold">{item.count} times</span>
                     </div>
                   ))}
                 </div>
@@ -162,7 +161,7 @@ const ReportsPage = () => {
 
             <Card>
               <CardContent className="p-6">
-                <p className="text-base font-semibold mb-4">การจองแยกตามสาขา</p>
+                <p className="text-base font-semibold mb-4">Bookings by branch</p>
                 <div className="space-y-3">
                   {summary?.bookingsByBranch?.map((item) => (
                     <div
@@ -172,7 +171,7 @@ const ReportsPage = () => {
                       <span className="text-sm text-muted-foreground">
                         {item.branch}
                       </span>
-                      <span className="font-semibold">{item.count} ครั้ง</span>
+                      <span className="font-semibold">{item.count} times</span>
                     </div>
                   ))}
                 </div>
@@ -184,30 +183,30 @@ const ReportsPage = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">ลูกค้าใหม่เดือนนี้</CardTitle>
+          <CardTitle className="text-base">New patients this month</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loadingPatients ? (
             <TableSkeleton cols={3} rows={3} />
           ) : !patientsReport?.newPatients?.length ? (
-            <EmptyState message="ไม่มีลูกค้าใหม่" />
+            <EmptyState message="No new patients" />
           ) : (
             <DataGrid
               rows={patientsReport.newPatients}
               columns={[
                 {
                   field: "fullName",
-                  headerName: "ชื่อ",
+                  headerName: "Name",
                   flex: 1,
                   valueGetter: (_, row) =>
                     `${row.firstName} ${row.lastName}${row.nickname ? ` (${row.nickname})` : ""}`,
                 },
-                { field: "phone", headerName: "เบอร์โทร", width: 140 },
+                { field: "phone", headerName: "Phone", width: 140 },
                 {
                   field: "createdAt",
-                  headerName: "วันที่สมัคร",
+                  headerName: "Date registered",
                   width: 150,
-                  valueGetter: (v) => format(new Date(v), "dd MMM yyyy", { locale: th }),
+                  valueGetter: (v) => format(new Date(v), "dd MMM yyyy"),
                 },
               ]}
               autoHeight
@@ -220,25 +219,25 @@ const ReportsPage = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">ลูกค้าเก่าที่กลับมาเดือนนี้</CardTitle>
+          <CardTitle className="text-base">Returning patients this month</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loadingPatients ? (
             <TableSkeleton cols={2} rows={3} />
           ) : !patientsReport?.returningPatients?.length ? (
-            <EmptyState message="ไม่มีลูกค้าเก่าในเดือนนี้" />
+            <EmptyState message="No returning patients this month" />
           ) : (
             <DataGrid
               rows={patientsReport.returningPatients.map((p, i) => ({ ...p, id: p.id ?? i }))}
               columns={[
                 {
                   field: "fullName",
-                  headerName: "ชื่อ",
+                  headerName: "Name",
                   flex: 1,
                   valueGetter: (_, row) =>
                     `${row.firstName} ${row.lastName}${row.nickname ? ` (${row.nickname})` : ""}`,
                 },
-                { field: "phone", headerName: "เบอร์โทร", width: 140 },
+                { field: "phone", headerName: "Phone", width: 140 },
               ]}
               autoHeight
               hideFooter

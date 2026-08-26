@@ -81,8 +81,8 @@ const ServicesPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="หัตถการ"
-        subtitle={`${categories.length} หมวดหมู่ / ${services.length} หัตถการ`}
+        title="Services"
+        subtitle={`${categories.length} categories / ${services.length} services`}
         action={
           <div className="flex gap-2">
             <Button
@@ -90,11 +90,11 @@ const ServicesPage = () => {
               onClick={() => setShowCategoryForm(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
-              เพิ่มหมวดหมู่
+              Add category
             </Button>
             <Button onClick={() => setShowServiceForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              เพิ่มหัตถการ
+              Add service
             </Button>
           </div>
         }
@@ -116,7 +116,7 @@ const ServicesPage = () => {
           ))}
         </div>
       ) : categories.length === 0 ? (
-        <EmptyState message="ยังไม่มีหมวดหมู่" />
+        <EmptyState message="No categories yet" />
       ) : (
         <div className="space-y-3">
           {categories.map((category) => {
@@ -139,7 +139,7 @@ const ServicesPage = () => {
                     )}
                     <span className="font-medium">{category.name}</span>
                     <Badge variant="secondary" className="text-xs">
-                      {categoryServices.length} รายการ
+                      {categoryServices.length} items
                     </Badge>
                   </div>
                   <Button
@@ -151,7 +151,7 @@ const ServicesPage = () => {
                       setConfirmCategory(category);
                     }}
                   >
-                    ปิดหมวดหมู่
+                    Close category
                   </Button>
                 </div>
 
@@ -159,23 +159,23 @@ const ServicesPage = () => {
                   <div className="border-t border-border">
                     {categoryServices.length === 0 ? (
                       <p className="px-6 py-4 text-sm text-muted-foreground">
-                        ยังไม่มีหัตถการในหมวดนี้
+                        No services in this category yet
                       </p>
                     ) : (
                       <DataGrid
                         rows={categoryServices}
                         columns={[
-                          { field: "name", headerName: "ชื่อหัตถการ", flex: 1 },
-                          { field: "duration", headerName: "ระยะเวลา", width: 120, valueGetter: (v) => `${v} นาที` },
-                          { field: "price", headerName: "ราคา", width: 120, valueGetter: (v) => v ? `฿${formatCurrency(v)}` : "-" },
+                          { field: "name", headerName: "Service name", flex: 1 },
+                          { field: "duration", headerName: "Duration", width: 120, valueGetter: (v) => `${v} min` },
+                          { field: "price", headerName: "Price", width: 120, valueGetter: (v) => v ? `฿${formatCurrency(v)}` : "-" },
                           {
                             field: "isActive",
-                            headerName: "สถานะ",
+                            headerName: "Status",
                             width: 90,
                             renderCell: (params) => (
                               <StatusBadge
                                 status={params.row.isActive ? "ACTIVE" : "INACTIVE"}
-                                label={params.row.isActive ? "เปิด" : "ปิด"}
+                                label={params.row.isActive ? "Active" : "Inactive"}
                               />
                             ),
                           },
@@ -194,7 +194,7 @@ const ServicesPage = () => {
                                   setConfirmService(params.row);
                                 }}
                               >
-                                ปิด
+                                Close
                               </Button>
                             ),
                           },
@@ -233,9 +233,9 @@ const ServicesPage = () => {
         open={!!confirmCategory}
         onClose={() => setConfirmCategory(null)}
         onConfirm={() => { deleteCategoryMutation.mutate(confirmCategory.id); setConfirmCategory(null); }}
-        title="ยืนยันการปิดหมวดหมู่"
-        description={confirmCategory ? `ต้องการปิดหมวดหมู่ "${confirmCategory.name}" หรือไม่?` : ""}
-        confirmLabel="ปิดหมวดหมู่"
+        title="Confirm closing category"
+        description={confirmCategory ? `Close category "${confirmCategory.name}"?` : ""}
+        confirmLabel="Close category"
         isLoading={deleteCategoryMutation.isPending}
       />
 
@@ -243,9 +243,9 @@ const ServicesPage = () => {
         open={!!confirmService}
         onClose={() => setConfirmService(null)}
         onConfirm={() => { deleteServiceMutation.mutate(confirmService.id); setConfirmService(null); }}
-        title="ยืนยันการปิดหัตถการ"
-        description={confirmService ? `ต้องการปิดหัตถการ "${confirmService.name}" หรือไม่?` : ""}
-        confirmLabel="ปิดหัตถการ"
+        title="Confirm closing service"
+        description={confirmService ? `Close service "${confirmService.name}"?` : ""}
+        confirmLabel="Close service"
         isLoading={deleteServiceMutation.isPending}
       />
     </div>
@@ -264,7 +264,7 @@ const CategoryForm = ({ open, onClose, onSubmit, isLoading, error }) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>เพิ่มหมวดหมู่</DialogTitle>
+          <DialogTitle>Add category</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -275,12 +275,12 @@ const CategoryForm = ({ open, onClose, onSubmit, isLoading, error }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="cat-name">ชื่อหมวดหมู่ *</Label>
+            <Label htmlFor="cat-name">Category name *</Label>
             <Input
               id="cat-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="เช่น ฟิลเลอร์ โบท็อกซ์"
+              placeholder="e.g. Filler, Botox"
               required
             />
           </div>
@@ -292,10 +292,10 @@ const CategoryForm = ({ open, onClose, onSubmit, isLoading, error }) => {
               className="flex-1"
               onClick={onClose}
             >
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -331,7 +331,7 @@ const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>เพิ่มหัตถการ</DialogTitle>
+          <DialogTitle>Add service</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -342,14 +342,14 @@ const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="svc-cat">หมวดหมู่ *</Label>
+            <Label htmlFor="svc-cat">Category *</Label>
             <Select
               value={form.categoryId}
               onValueChange={(v) => setForm({ ...form, categoryId: v })}
               required
             >
               <SelectTrigger id="svc-cat" className="w-full">
-                <SelectValue placeholder="เลือกหมวดหมู่" />
+                <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((c) => (
@@ -362,7 +362,7 @@ const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) 
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="svc-name">ชื่อหัตถการ *</Label>
+            <Label htmlFor="svc-name">Service name *</Label>
             <Input
               id="svc-name"
               name="name"
@@ -374,7 +374,7 @@ const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) 
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="svc-dur">ระยะเวลา (นาที) *</Label>
+              <Label htmlFor="svc-dur">Duration (min) *</Label>
               <Input
                 id="svc-dur"
                 type="number"
@@ -385,7 +385,7 @@ const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) 
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="svc-price">ราคา (บาท)</Label>
+              <Label htmlFor="svc-price">Price (THB)</Label>
               <Input
                 id="svc-price"
                 type="number"
@@ -397,7 +397,7 @@ const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) 
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="svc-desc">รายละเอียด</Label>
+            <Label htmlFor="svc-desc">Description</Label>
             <Textarea
               id="svc-desc"
               name="description"
@@ -414,10 +414,10 @@ const ServiceForm = ({ open, onClose, onSubmit, isLoading, error, categories }) 
               className="flex-1"
               onClick={onClose}
             >
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>

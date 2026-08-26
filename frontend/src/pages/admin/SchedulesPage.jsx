@@ -30,13 +30,13 @@ import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 const DAY_LABELS = {
-  0: "อาทิตย์",
-  1: "จันทร์",
-  2: "อังคาร",
-  3: "พุธ",
-  4: "พฤหัส",
-  5: "ศุกร์",
-  6: "เสาร์",
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
 };
 
 const HOUR_START = 8;
@@ -122,13 +122,13 @@ const SchedulesPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ตารางเวลา"
-        subtitle={`ทั้งหมด ${schedules.length} รายการ`}
+        title="Schedules"
+        subtitle={`${schedules.length} total`}
         action={
           !isStaff && (
             <Button onClick={() => setShowForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              เพิ่มตาราง
+              Add schedule
             </Button>
           )
         }
@@ -137,10 +137,10 @@ const SchedulesPage = () => {
       <div className="flex flex-wrap gap-3">
         <Select value={filterBranch} onValueChange={setFilterBranch}>
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="ทุกสาขา" />
+            <SelectValue placeholder="All branches" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทุกสาขา</SelectItem>
+            <SelectItem value="all">All branches</SelectItem>
             {branches.map((b) => (
               <SelectItem key={b.id} value={String(b.id)}>
                 {b.name}
@@ -151,10 +151,10 @@ const SchedulesPage = () => {
 
         <Select value={filterDoctor} onValueChange={setFilterDoctor}>
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="ทุกหมอ" />
+            <SelectValue placeholder="All doctors" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">ทุกหมอ</SelectItem>
+            <SelectItem value="all">All doctors</SelectItem>
             {doctors.map((d) => (
               <SelectItem key={d.id} value={String(d.id)}>
                 {d.name}
@@ -169,7 +169,7 @@ const SchedulesPage = () => {
       ) : schedules.length === 0 ? (
         <Card>
           <CardContent className="p-8">
-            <EmptyState message="ไม่พบตารางเวลา" />
+            <EmptyState message="No schedules found" />
           </CardContent>
         </Card>
       ) : (
@@ -370,7 +370,7 @@ const ScheduleForm = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>เพิ่มตารางเวลา</DialogTitle>
+          <DialogTitle>Add schedule</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -381,14 +381,14 @@ const ScheduleForm = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="sched-branch">สาขา *</Label>
+            <Label htmlFor="sched-branch">Branch *</Label>
             <Select
               value={form.branchId}
               onValueChange={set("branchId")}
               required
             >
               <SelectTrigger id="sched-branch" className="w-full">
-                <SelectValue placeholder="เลือกสาขา" />
+                <SelectValue placeholder="Select branch" />
               </SelectTrigger>
               <SelectContent>
                 {branches.map((b) => (
@@ -401,14 +401,14 @@ const ScheduleForm = ({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="sched-doctor">หมอ *</Label>
+            <Label htmlFor="sched-doctor">Doctor *</Label>
             <Select
               value={form.doctorId}
               onValueChange={set("doctorId")}
               required
             >
               <SelectTrigger id="sched-doctor" className="w-full">
-                <SelectValue placeholder="เลือกหมอ" />
+                <SelectValue placeholder="Select doctor" />
               </SelectTrigger>
               <SelectContent>
                 {doctors.map((d) => (
@@ -421,14 +421,14 @@ const ScheduleForm = ({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="sched-day">วัน *</Label>
+            <Label htmlFor="sched-day">Day *</Label>
             <Select
               value={form.dayOfWeek}
               onValueChange={set("dayOfWeek")}
               required
             >
               <SelectTrigger id="sched-day" className="w-full">
-                <SelectValue placeholder="เลือกวัน" />
+                <SelectValue placeholder="Select day" />
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(DAY_LABELS).map(([value, label]) => (
@@ -442,7 +442,7 @@ const ScheduleForm = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="sched-start">เวลาเริ่ม *</Label>
+              <Label htmlFor="sched-start">Start time *</Label>
               <Input
                 id="sched-start"
                 type="time"
@@ -452,7 +452,7 @@ const ScheduleForm = ({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="sched-end">เวลาสิ้นสุด *</Label>
+              <Label htmlFor="sched-end">End time *</Label>
               <Input
                 id="sched-end"
                 type="time"
@@ -470,10 +470,10 @@ const ScheduleForm = ({
               className="flex-1"
               onClick={onClose}
             >
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -489,22 +489,22 @@ const ScheduleDetail = ({ schedule, onClose, onDelete, readOnly }) => {
       <Dialog open={!!schedule} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>รายละเอียดตาราง</DialogTitle>
+            <DialogTitle>Schedule details</DialogTitle>
           </DialogHeader>
 
           {schedule && (
             <>
               <div className="divide-y divide-border">
-                <DetailRow label="วัน" value={DAY_LABELS[schedule.dayOfWeek]} />
-                <DetailRow label="หมอ" value={schedule.doctor?.name} />
-                <DetailRow label="สาขา" value={schedule.branch?.name} />
+                <DetailRow label="Day" value={DAY_LABELS[schedule.dayOfWeek]} />
+                <DetailRow label="Doctor" value={schedule.doctor?.name} />
+                <DetailRow label="Branch" value={schedule.branch?.name} />
                 <DetailRow
-                  label="เวลา"
+                  label="Time"
                   value={`${schedule.startTime} – ${schedule.endTime}`}
                 />
                 <DetailRow
-                  label="สถานะ"
-                  value={schedule.isActive ? "เปิด" : "ปิด"}
+                  label="Status"
+                  value={schedule.isActive ? "Active" : "Inactive"}
                   valueClassName={
                     schedule.isActive ? "text-green-600" : "text-destructive"
                   }
@@ -518,11 +518,11 @@ const ScheduleDetail = ({ schedule, onClose, onDelete, readOnly }) => {
                     className="flex-1"
                     onClick={() => setConfirmOpen(true)}
                   >
-                    ปิดตาราง
+                    Close schedule
                   </Button>
                 )}
                 <Button className="flex-1" onClick={onClose}>
-                  ปิด
+                  Close
                 </Button>
               </div>
             </>
@@ -537,13 +537,13 @@ const ScheduleDetail = ({ schedule, onClose, onDelete, readOnly }) => {
           setConfirmOpen(false);
           onDelete();
         }}
-        title="ยืนยันการปิดตาราง"
+        title="Confirm closing schedule"
         description={
           schedule
-            ? `ต้องการปิดตาราง ${DAY_LABELS[schedule.dayOfWeek]} ของ ${schedule.doctor?.name} หรือไม่?`
+            ? `Close the ${DAY_LABELS[schedule.dayOfWeek]} schedule for ${schedule.doctor?.name}?`
             : ""
         }
-        confirmLabel="ปิดตาราง"
+        confirmLabel="Close schedule"
       />
     </>
   );

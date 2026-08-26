@@ -51,12 +51,12 @@ const DoctorsPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="หมอ"
-        subtitle={`ทั้งหมด ${doctors.length} คน`}
+        title="Doctors"
+        subtitle={`${doctors.length} total`}
         action={
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            เพิ่มหมอ
+            Add doctor
           </Button>
         }
       />
@@ -66,29 +66,29 @@ const DoctorsPage = () => {
           {isLoading ? (
             <TableSkeleton cols={5} />
           ) : doctors.length === 0 ? (
-            <EmptyState message="ไม่พบข้อมูลหมอ" />
+            <EmptyState message="No doctors found" />
           ) : (
             <DataGrid
               rows={doctors}
               columns={[
-                { field: "name", headerName: "ชื่อ", flex: 1 },
-                { field: "specialty", headerName: "ความเชี่ยวชาญ", flex: 1, valueGetter: (v) => v || "-" },
-                { field: "phone", headerName: "เบอร์โทร", width: 140, valueGetter: (v) => formatPhone(v) },
+                { field: "name", headerName: "Name", flex: 1 },
+                { field: "specialty", headerName: "Specialty", flex: 1, valueGetter: (v) => v || "-" },
+                { field: "phone", headerName: "Phone", width: 140, valueGetter: (v) => formatPhone(v) },
                 {
                   field: "branches",
-                  headerName: "สาขา",
+                  headerName: "Branch",
                   flex: 1,
                   valueGetter: (_, row) =>
                     row.doctorBranches?.map((db) => db.branch?.name).join(", ") || "-",
                 },
                 {
                   field: "isActive",
-                  headerName: "สถานะ",
+                  headerName: "Status",
                   width: 110,
                   renderCell: (params) => (
                     <StatusBadge
                       status={params.row.isActive ? "ACTIVE" : "INACTIVE"}
-                      label={params.row.isActive ? "ใช้งาน" : "ปิด"}
+                      label={params.row.isActive ? "Active" : "Inactive"}
                     />
                   ),
                 },
@@ -158,7 +158,7 @@ const DoctorForm = ({ open, onClose, onSubmit, isLoading, error }) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>เพิ่มหมอใหม่</DialogTitle>
+          <DialogTitle>Add new doctor</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -169,7 +169,7 @@ const DoctorForm = ({ open, onClose, onSubmit, isLoading, error }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="doctor-name">ชื่อหมอ *</Label>
+            <Label htmlFor="doctor-name">Doctor name *</Label>
             <Input
               id="doctor-name"
               name="name"
@@ -180,7 +180,7 @@ const DoctorForm = ({ open, onClose, onSubmit, isLoading, error }) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="doctor-specialty">ความเชี่ยวชาญ</Label>
+            <Label htmlFor="doctor-specialty">Specialty</Label>
             <Input
               id="doctor-specialty"
               name="specialty"
@@ -190,7 +190,7 @@ const DoctorForm = ({ open, onClose, onSubmit, isLoading, error }) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="doctor-phone">เบอร์โทร</Label>
+            <Label htmlFor="doctor-phone">Phone</Label>
             <Input
               id="doctor-phone"
               name="phone"
@@ -200,7 +200,7 @@ const DoctorForm = ({ open, onClose, onSubmit, isLoading, error }) => {
           </div>
 
           <div className="space-y-2">
-            <Label>สาขาที่ทำงาน *</Label>
+            <Label>Branches *</Label>
             <div className="space-y-1">
               {branches.map((branch) => (
                 <Label
@@ -226,10 +226,10 @@ const DoctorForm = ({ open, onClose, onSubmit, isLoading, error }) => {
               className="flex-1"
               onClick={onClose}
             >
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -245,20 +245,20 @@ const DoctorDetail = ({ doctor, onClose, onDelete }) => {
       <Dialog open={!!doctor} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>ข้อมูลหมอ</DialogTitle>
+            <DialogTitle>Doctor details</DialogTitle>
           </DialogHeader>
 
           {doctor && (
             <>
               <div className="divide-y divide-border">
-                <DetailRow label="ชื่อ" value={doctor.name} />
+                <DetailRow label="Name" value={doctor.name} />
                 <DetailRow
-                  label="ความเชี่ยวชาญ"
+                  label="Specialty"
                   value={doctor.specialty || "-"}
                 />
-                <DetailRow label="เบอร์โทร" value={formatPhone(doctor.phone)} />
+                <DetailRow label="Phone" value={formatPhone(doctor.phone)} />
                 <DetailRow
-                  label="สาขา"
+                  label="Branch"
                   value={
                     doctor.doctorBranches
                       ?.map((db) => db.branch?.name)
@@ -266,8 +266,8 @@ const DoctorDetail = ({ doctor, onClose, onDelete }) => {
                   }
                 />
                 <DetailRow
-                  label="สถานะ"
-                  value={doctor.isActive ? "ใช้งาน" : "ปิด"}
+                  label="Status"
+                  value={doctor.isActive ? "Active" : "Inactive"}
                   valueClassName={
                     doctor.isActive ? "text-green-600" : "text-destructive"
                   }
@@ -280,10 +280,10 @@ const DoctorDetail = ({ doctor, onClose, onDelete }) => {
                   className="flex-1"
                   onClick={() => setConfirmOpen(true)}
                 >
-                  ปิดการใช้งาน
+                  Deactivate
                 </Button>
                 <Button className="flex-1" onClick={onClose}>
-                  ปิด
+                  Close
                 </Button>
               </div>
             </>
@@ -295,9 +295,9 @@ const DoctorDetail = ({ doctor, onClose, onDelete }) => {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={() => { setConfirmOpen(false); onDelete(); }}
-        title="ยืนยันการปิดการใช้งาน"
-        description={doctor ? `ต้องการปิดการใช้งาน "${doctor.name}" หรือไม่?` : ""}
-        confirmLabel="ปิดการใช้งาน"
+        title="Confirm deactivation"
+        description={doctor ? `Deactivate "${doctor.name}"?` : ""}
+        confirmLabel="Deactivate"
       />
     </>
   );

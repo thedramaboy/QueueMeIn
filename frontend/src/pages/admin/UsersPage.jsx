@@ -51,28 +51,28 @@ const RoleBadge = ({ role }) => {
 };
 
 const columns = [
-  { field: "name", headerName: "ชื่อ", flex: 1 },
-  { field: "email", headerName: "อีเมล", flex: 1 },
+  { field: "name", headerName: "Name", flex: 1 },
+  { field: "email", headerName: "Email", flex: 1 },
   {
     field: "role",
-    headerName: "บทบาท",
+    headerName: "Role",
     width: 120,
     renderCell: (params) => <RoleBadge role={params.value} />,
   },
   {
     field: "branch",
-    headerName: "สาขา",
+    headerName: "Branch",
     width: 160,
-    valueGetter: (_, row) => row.branch?.name || "ทุกสาขา",
+    valueGetter: (_, row) => row.branch?.name || "All branches",
   },
   {
     field: "isActive",
-    headerName: "สถานะ",
+    headerName: "Status",
     width: 110,
     renderCell: (params) => (
       <StatusBadge
         status={params.value ? "ACTIVE" : "INACTIVE"}
-        label={params.value ? "ใช้งาน" : "ปิดใช้งาน"}
+        label={params.value ? "Active" : "Inactive"}
       />
     ),
   },
@@ -94,7 +94,7 @@ const UsersPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowForm(false);
-      toast.success("สร้างบัญชีผู้ใช้สำเร็จ");
+      toast.success("User account created");
     },
   });
 
@@ -103,7 +103,7 @@ const UsersPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setSelected(null);
-      toast.success("ปิดใช้งานบัญชีสำเร็จ");
+      toast.success("Account deactivated");
     },
   });
 
@@ -112,12 +112,12 @@ const UsersPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="จัดการผู้ใช้งาน"
-        subtitle={`ใช้งานอยู่ ${activeCount} จาก ${users.length} บัญชี`}
+        title="User management"
+        subtitle={`${activeCount} of ${users.length} accounts active`}
         action={
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            เพิ่มผู้ใช้
+            Add user
           </Button>
         }
       />
@@ -127,7 +127,7 @@ const UsersPage = () => {
           {isLoading ? (
             <TableSkeleton cols={5} />
           ) : users.length === 0 ? (
-            <EmptyState message="ยังไม่มีผู้ใช้งานในระบบ" />
+            <EmptyState message="No users in the system yet" />
           ) : (
             <DataGrid
               rows={users}
@@ -195,7 +195,7 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error, currentUserRole }
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>เพิ่มผู้ใช้งาน</DialogTitle>
+          <DialogTitle>Add user</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -206,18 +206,18 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error, currentUserRole }
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="u-name">ชื่อ *</Label>
+            <Label htmlFor="u-name">Name *</Label>
             <Input
               id="u-name"
               value={form.name}
               onChange={(e) => set("name")(e.target.value)}
-              placeholder="สมชาย ใจดี"
+              placeholder="John Smith"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="u-email">อีเมล *</Label>
+            <Label htmlFor="u-email">Email *</Label>
             <Input
               id="u-email"
               type="email"
@@ -229,20 +229,20 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error, currentUserRole }
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="u-password">รหัสผ่าน *</Label>
+            <Label htmlFor="u-password">Password *</Label>
             <Input
               id="u-password"
               type="password"
               value={form.password}
               onChange={(e) => set("password")(e.target.value)}
-              placeholder="อย่างน้อย 6 ตัวอักษร"
+              placeholder="At least 6 characters"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="u-role">บทบาท *</Label>
+              <Label htmlFor="u-role">Role *</Label>
               <Select value={form.role} onValueChange={set("role")}>
                 <SelectTrigger id="u-role">
                   <SelectValue />
@@ -257,7 +257,7 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error, currentUserRole }
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="u-branch">สาขา</Label>
+              <Label htmlFor="u-branch">Branch</Label>
               <Select
                 value={form.branchId || "none"}
                 onValueChange={(v) => set("branchId")(v === "none" ? "" : v)}
@@ -266,7 +266,7 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error, currentUserRole }
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">ทุกสาขา</SelectItem>
+                  <SelectItem value="none">All branches</SelectItem>
                   {branches.map((b) => (
                     <SelectItem key={b.id} value={String(b.id)}>
                       {b.name}
@@ -279,10 +279,10 @@ const UserForm = ({ open, onClose, onSubmit, isLoading, error, currentUserRole }
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={isLoading}>
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -301,22 +301,22 @@ const UserDetail = ({ user, onClose, onDeactivate, isDeactivating }) => {
       <Dialog open={!!user} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>ข้อมูลผู้ใช้งาน</DialogTitle>
+            <DialogTitle>User details</DialogTitle>
           </DialogHeader>
 
           <div className="divide-y divide-border">
-            <DetailRow label="ชื่อ" value={user.name} />
-            <DetailRow label="อีเมล" value={user.email} />
+            <DetailRow label="Name" value={user.name} />
+            <DetailRow label="Email" value={user.email} />
             <div className="flex items-center justify-between py-2.5 gap-4">
-              <span className="text-sm text-muted-foreground shrink-0">บทบาท</span>
+              <span className="text-sm text-muted-foreground shrink-0">Role</span>
               <RoleBadge role={user.role} />
             </div>
-            <DetailRow label="สาขา" value={user.branch?.name || "ทุกสาขา"} />
+            <DetailRow label="Branch" value={user.branch?.name || "All branches"} />
             <div className="flex items-center justify-between py-2.5 gap-4">
-              <span className="text-sm text-muted-foreground shrink-0">สถานะ</span>
+              <span className="text-sm text-muted-foreground shrink-0">Status</span>
               <StatusBadge
                 status={user.isActive ? "ACTIVE" : "INACTIVE"}
-                label={user.isActive ? "ใช้งาน" : "ปิดใช้งาน"}
+                label={user.isActive ? "Active" : "Inactive"}
               />
             </div>
           </div>
@@ -329,11 +329,11 @@ const UserDetail = ({ user, onClose, onDeactivate, isDeactivating }) => {
                 onClick={() => setConfirmOpen(true)}
                 disabled={isDeactivating}
               >
-                ปิดใช้งาน
+                Deactivate
               </Button>
             )}
             <Button variant="outline" className="flex-1" onClick={onClose}>
-              ปิด
+              Close
             </Button>
           </div>
         </DialogContent>
@@ -346,9 +346,9 @@ const UserDetail = ({ user, onClose, onDeactivate, isDeactivating }) => {
           setConfirmOpen(false);
           onDeactivate();
         }}
-        title="ยืนยันการปิดใช้งาน"
-        description={`บัญชี "${user.name}" จะไม่สามารถเข้าสู่ระบบได้อีกจนกว่าจะเปิดใช้งานใหม่`}
-        confirmLabel="ปิดใช้งาน"
+        title="Confirm deactivation"
+        description={`The account "${user.name}" will not be able to log in until it is reactivated.`}
+        confirmLabel="Deactivate"
       />
     </>
   );

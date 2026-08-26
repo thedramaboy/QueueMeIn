@@ -84,12 +84,12 @@ const PatientsPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ลูกค้า"
-        subtitle={`ทั้งหมด ${patients.length} คน`}
+        title="Patients"
+        subtitle={`${patients.length} total`}
         action={
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            เพิ่มลูกค้า
+            Add patient
           </Button>
         }
       />
@@ -97,7 +97,7 @@ const PatientsPage = () => {
       {pendingError && (
         <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-3 text-sm text-destructive">
-            ไม่สามารถโหลดข้อมูลรอผูก LINE ได้ กรุณาลองรีเฟรชหน้า
+            Unable to load pending LINE links. Please refresh the page.
           </CardContent>
         </Card>
       )}
@@ -106,11 +106,11 @@ const PatientsPage = () => {
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="p-4">
             <h2 className="font-semibold text-amber-800 mb-1">
-              รอผูก LINE ({pendingUsers.length} คน)
+              Pending LINE links ({pendingUsers.length})
             </h2>
             <p className="text-xs text-amber-600 mb-3">
-              ผู้ใช้เหล่านี้ติดตาม LINE Bot ของคลินิกแล้ว —
-              เลือกลูกค้าเพื่อเชื่อมบัญชี
+              These users already follow the clinic's LINE bot —
+              select a patient to link the account.
             </p>
             <div className="space-y-2">
               {pendingUsers.map((user) => (
@@ -125,7 +125,7 @@ const PatientsPage = () => {
                       </Avatar>
                       <div>
                         <p className="text-sm font-medium">
-                          {user.displayName || "ไม่มีชื่อ"}
+                          {user.displayName || "No name"}
                         </p>
                       </div>
                     </div>
@@ -141,7 +141,7 @@ const PatientsPage = () => {
                       }}
                     >
                       <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="เลือกลูกค้า" />
+                        <SelectValue placeholder="Select patient" />
                       </SelectTrigger>
                       <SelectContent>
                         {patients.map((p) => (
@@ -166,7 +166,7 @@ const PatientsPage = () => {
         />
         <Input
           type="text"
-          placeholder="ค้นหาคนไข้, เบอร์โทร, HN…"
+          placeholder="Search patient, phone, HN…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10 pr-9 rounded-full bg-muted border border-border focus-visible:ring-2 focus-visible:ring-ring"
@@ -186,7 +186,7 @@ const PatientsPage = () => {
           {isLoading ? (
             <TableSkeleton cols={6} />
           ) : patients.length === 0 ? (
-            <EmptyState message="ไม่พบข้อมูลลูกค้า" />
+            <EmptyState message="No patients found" />
           ) : (
             <DataGrid
               rows={patients}
@@ -194,7 +194,7 @@ const PatientsPage = () => {
                 { field: "opdNumber", headerName: "OPD", width: 100 },
                 {
                   field: "fullName",
-                  headerName: "ชื่อ",
+                  headerName: "Name",
                   flex: 1,
                   renderCell: (params) => (
                     <div className="flex flex-col justify-center py-1">
@@ -211,30 +211,30 @@ const PatientsPage = () => {
                 },
                 {
                   field: "phone",
-                  headerName: "เบอร์โทร",
+                  headerName: "Phone",
                   width: 140,
                   valueGetter: (v) => formatPhone(v),
                 },
                 {
                   field: "age",
-                  headerName: "อายุ",
+                  headerName: "Age",
                   width: 70,
                   valueGetter: (v) => v || "-",
                 },
                 {
                   field: "isNewPatient",
-                  headerName: "ประเภท",
+                  headerName: "Type",
                   width: 90,
                   renderCell: (params) => (
                     <StatusBadge
                       status={params.row.isNewPatient ? "ACTIVE" : "INACTIVE"}
-                      label={params.row.isNewPatient ? "ใหม่" : "เก่า"}
+                      label={params.row.isNewPatient ? "New" : "Returning"}
                     />
                   ),
                 },
                 {
                   field: "allergyHistory",
-                  headerName: "แพ้ยา",
+                  headerName: "Allergies",
                   flex: 1,
                   valueGetter: (v) => v || "-",
                 },
@@ -298,7 +298,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>เพิ่มลูกค้าใหม่</DialogTitle>
+          <DialogTitle>Add new patient</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -310,7 +310,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="p-opd">เลข OPD *</Label>
+              <Label htmlFor="p-opd">OPD number *</Label>
               <Input
                 id="p-opd"
                 name="opdNumber"
@@ -320,7 +320,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="p-nid">เลขบัตรประชาชน</Label>
+              <Label htmlFor="p-nid">National ID</Label>
               <Input
                 id="p-nid"
                 name="nationalId"
@@ -332,7 +332,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="p-first">ชื่อ *</Label>
+              <Label htmlFor="p-first">First name *</Label>
               <Input
                 id="p-first"
                 name="firstName"
@@ -342,7 +342,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="p-last">นามสกุล *</Label>
+              <Label htmlFor="p-last">Last name *</Label>
               <Input
                 id="p-last"
                 name="lastName"
@@ -355,7 +355,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="p-nick">ชื่อเล่น</Label>
+              <Label htmlFor="p-nick">Nickname</Label>
               <Input
                 id="p-nick"
                 name="nickname"
@@ -364,7 +364,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="p-age">อายุ</Label>
+              <Label htmlFor="p-age">Age</Label>
               <Input
                 id="p-age"
                 name="age"
@@ -376,7 +376,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="p-phone">เบอร์โทร *</Label>
+            <Label htmlFor="p-phone">Phone *</Label>
             <Input
               id="p-phone"
               name="phone"
@@ -387,7 +387,7 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="p-allergy">ประวัติแพ้ยา</Label>
+            <Label htmlFor="p-allergy">Allergy history</Label>
             <Textarea
               id="p-allergy"
               name="allergyHistory"
@@ -404,10 +404,10 @@ const PatientForm = ({ open, onClose, onSubmit, isLoading, error }) => {
               className="flex-1"
               onClick={onClose}
             >
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -424,29 +424,29 @@ const PatientDetail = ({ patient, onClose, onDelete, onUnlink, unlinkLoading }) 
       <Dialog open={!!patient} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>ข้อมูลลูกค้า</DialogTitle>
+            <DialogTitle>Patient details</DialogTitle>
           </DialogHeader>
 
           {patient && (
             <>
               <div className="divide-y divide-border">
-                <DetailRow label="เลข OPD" value={patient.opdNumber} />
+                <DetailRow label="OPD number" value={patient.opdNumber} />
                 <DetailRow
-                  label="ชื่อ"
+                  label="Name"
                   value={`${patient.firstName} ${patient.lastName}`}
                 />
-                <DetailRow label="ชื่อเล่น" value={patient.nickname || "-"} />
+                <DetailRow label="Nickname" value={patient.nickname || "-"} />
                 <DetailRow
-                  label="เบอร์โทร"
+                  label="Phone"
                   value={formatPhone(patient.phone)}
                 />
-                <DetailRow label="อายุ" value={patient.age || "-"} />
+                <DetailRow label="Age" value={patient.age || "-"} />
                 <DetailRow
-                  label="ประเภท"
-                  value={patient.isNewPatient ? "ลูกค้าใหม่" : "ลูกค้าเก่า"}
+                  label="Type"
+                  value={patient.isNewPatient ? "New patient" : "Returning patient"}
                 />
                 <DetailRow
-                  label="แพ้ยา"
+                  label="Allergies"
                   value={patient.allergyHistory || "-"}
                   valueClassName={
                     patient.allergyHistory ? "text-destructive" : undefined
@@ -457,7 +457,7 @@ const PatientDetail = ({ patient, onClose, onDelete, onUnlink, unlinkLoading }) 
                   {patient.lineUserId ? (
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">
-                        {patient.lineDisplayName || "เชื่อมแล้ว"}
+                        {patient.lineDisplayName || "Linked"}
                       </span>
                       <Button
                         variant="ghost"
@@ -466,12 +466,12 @@ const PatientDetail = ({ patient, onClose, onDelete, onUnlink, unlinkLoading }) 
                         onClick={() => setUnlinkOpen(true)}
                         disabled={unlinkLoading}
                       >
-                        ยกเลิก LINE
+                        Unlink LINE
                       </Button>
                     </div>
                   ) : (
                     <span className="text-sm font-medium text-muted-foreground">
-                      ยังไม่ได้เชื่อม
+                      Not linked
                     </span>
                   )}
                 </div>
@@ -483,10 +483,10 @@ const PatientDetail = ({ patient, onClose, onDelete, onUnlink, unlinkLoading }) 
                   className="flex-1"
                   onClick={() => setConfirmOpen(true)}
                 >
-                  ลบ
+                  Delete
                 </Button>
                 <Button className="flex-1" onClick={onClose}>
-                  ปิด
+                  Close
                 </Button>
               </div>
             </>
@@ -501,13 +501,13 @@ const PatientDetail = ({ patient, onClose, onDelete, onUnlink, unlinkLoading }) 
           setConfirmOpen(false);
           onDelete();
         }}
-        title="ยืนยันการลบลูกค้า"
+        title="Confirm delete patient"
         description={
           patient
-            ? `ต้องการลบ "${patient.firstName} ${patient.lastName}" ออกจากระบบหรือไม่?`
+            ? `Delete "${patient.firstName} ${patient.lastName}" from the system?`
             : ""
         }
-        confirmLabel="ลบ"
+        confirmLabel="Delete"
       />
 
       <ConfirmDialog
@@ -517,13 +517,13 @@ const PatientDetail = ({ patient, onClose, onDelete, onUnlink, unlinkLoading }) 
           setUnlinkOpen(false);
           onUnlink();
         }}
-        title="ยืนยันการยกเลิก LINE"
+        title="Confirm unlink LINE"
         description={
           patient
-            ? `ต้องการยกเลิกการเชื่อม LINE ของ "${patient.firstName} ${patient.lastName}" หรือไม่?`
+            ? `Unlink the LINE account of "${patient.firstName} ${patient.lastName}"?`
             : ""
         }
-        confirmLabel="ยกเลิก LINE"
+        confirmLabel="Unlink LINE"
       />
     </>
   );

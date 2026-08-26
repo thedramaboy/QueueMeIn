@@ -50,12 +50,12 @@ const BranchesPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="สาขา"
-        subtitle={`ทั้งหมด ${branches.length} สาขา`}
+        title="Branches"
+        subtitle={`${branches.length} total`}
         action={
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            เพิ่มสาขา
+            Add branch
           </Button>
         }
       />
@@ -65,22 +65,22 @@ const BranchesPage = () => {
           {isLoading ? (
             <TableSkeleton cols={4} />
           ) : branches.length === 0 ? (
-            <EmptyState message="ไม่พบข้อมูลสาขา" />
+            <EmptyState message="No branches found" />
           ) : (
             <DataGrid
               rows={branches}
               columns={[
-                { field: "name", headerName: "ชื่อสาขา", flex: 1 },
-                { field: "location", headerName: "ที่อยู่", flex: 1 },
-                { field: "phone", headerName: "เบอร์โทร", width: 140, valueGetter: (v) => formatPhone(v) },
+                { field: "name", headerName: "Branch name", flex: 1 },
+                { field: "location", headerName: "Address", flex: 1 },
+                { field: "phone", headerName: "Phone", width: 140, valueGetter: (v) => formatPhone(v) },
                 {
                   field: "isActive",
-                  headerName: "สถานะ",
+                  headerName: "Status",
                   width: 100,
                   renderCell: (params) => (
                     <StatusBadge
                       status={params.row.isActive ? "ACTIVE" : "INACTIVE"}
-                      label={params.row.isActive ? "เปิด" : "ปิด"}
+                      label={params.row.isActive ? "Open" : "Closed"}
                     />
                   ),
                 },
@@ -130,7 +130,7 @@ const BranchForm = ({ open, onClose, onSubmit, isLoading, error }) => {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>เพิ่มสาขาใหม่</DialogTitle>
+          <DialogTitle>Add new branch</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -141,7 +141,7 @@ const BranchForm = ({ open, onClose, onSubmit, isLoading, error }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="branch-name">ชื่อสาขา *</Label>
+            <Label htmlFor="branch-name">Branch name *</Label>
             <Input
               id="branch-name"
               name="name"
@@ -152,7 +152,7 @@ const BranchForm = ({ open, onClose, onSubmit, isLoading, error }) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="branch-location">ที่อยู่ *</Label>
+            <Label htmlFor="branch-location">Address *</Label>
             <Input
               id="branch-location"
               name="location"
@@ -163,7 +163,7 @@ const BranchForm = ({ open, onClose, onSubmit, isLoading, error }) => {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="branch-phone">เบอร์โทร</Label>
+            <Label htmlFor="branch-phone">Phone</Label>
             <Input
               id="branch-phone"
               name="phone"
@@ -179,10 +179,10 @@ const BranchForm = ({ open, onClose, onSubmit, isLoading, error }) => {
               className="flex-1"
               onClick={onClose}
             >
-              ยกเลิก
+              Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">
-              {isLoading ? "กำลังบันทึก..." : "บันทึก"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
@@ -198,18 +198,18 @@ const BranchDetail = ({ branch, onClose, onDelete }) => {
       <Dialog open={!!branch} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>ข้อมูลสาขา</DialogTitle>
+            <DialogTitle>Branch details</DialogTitle>
           </DialogHeader>
 
           {branch && (
             <>
               <div className="divide-y divide-border">
-                <DetailRow label="ชื่อสาขา" value={branch.name} />
-                <DetailRow label="ที่อยู่" value={branch.location} />
-                <DetailRow label="เบอร์โทร" value={formatPhone(branch.phone)} />
+                <DetailRow label="Branch name" value={branch.name} />
+                <DetailRow label="Address" value={branch.location} />
+                <DetailRow label="Phone" value={formatPhone(branch.phone)} />
                 <DetailRow
-                  label="สถานะ"
-                  value={branch.isActive ? "เปิด" : "ปิด"}
+                  label="Status"
+                  value={branch.isActive ? "Open" : "Closed"}
                   valueClassName={branch.isActive ? "text-green-600" : "text-destructive"}
                 />
               </div>
@@ -220,10 +220,10 @@ const BranchDetail = ({ branch, onClose, onDelete }) => {
                   className="flex-1"
                   onClick={() => setConfirmOpen(true)}
                 >
-                  ปิดสาขา
+                  Close branch
                 </Button>
                 <Button className="flex-1" onClick={onClose}>
-                  ปิด
+                  Close
                 </Button>
               </div>
             </>
@@ -235,9 +235,9 @@ const BranchDetail = ({ branch, onClose, onDelete }) => {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={() => { setConfirmOpen(false); onDelete(); }}
-        title="ยืนยันการปิดสาขา"
-        description={branch ? `ต้องการปิดสาขา "${branch.name}" หรือไม่?` : ""}
-        confirmLabel="ปิดสาขา"
+        title="Confirm closing branch"
+        description={branch ? `Close branch "${branch.name}"?` : ""}
+        confirmLabel="Close branch"
       />
     </>
   );

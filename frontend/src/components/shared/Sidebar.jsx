@@ -29,55 +29,55 @@ const Sidebar = ({ collapsed, onToggle }) => {
 
   const menus = [
     {
-      label: "แดชบอร์ด",
+      label: "Dashboard",
       path: "/dashboard",
       icon: LayoutDashboard,
       roles: ["SUPERUSER", "ADMIN", "STAFF"],
     },
     {
-      label: "ลูกค้า",
+      label: "Patients",
       path: "/patients",
       icon: Users,
       roles: ["SUPERUSER", "ADMIN", "STAFF"],
     },
     {
-      label: "การจอง",
+      label: "Bookings",
       path: "/bookings",
       icon: CalendarDays,
       roles: ["SUPERUSER", "ADMIN", "STAFF"],
     },
     {
-      label: "หมอ",
+      label: "Doctors",
       path: "/doctors",
       icon: Stethoscope,
       roles: ["SUPERUSER", "ADMIN"],
     },
     {
-      label: "สาขา",
+      label: "Branches",
       path: "/branches",
       icon: GitBranch,
       roles: ["SUPERUSER", "ADMIN"],
     },
     {
-      label: "รายงาน",
+      label: "Reports",
       path: "/reports",
       icon: ClipboardList,
       roles: ["SUPERUSER", "ADMIN"],
     },
     {
-      label: "ตารางเวลา",
+      label: "Schedules",
       path: "/schedules",
       icon: Clock,
       roles: ["SUPERUSER", "ADMIN", "STAFF"],
     },
     {
-      label: "หัตถการ",
+      label: "Services",
       path: "services",
       icon: Syringe,
       roles: ["SUPERUSER", "ADMIN"],
     },
     {
-      label: "ผู้ใช้งาน",
+      label: "Users",
       path: "/users",
       icon: UserCog,
       roles: ["SUPERUSER", "ADMIN"],
@@ -104,7 +104,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          aria-label={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+          aria-label={collapsed ? "Expand menu" : "Collapse menu"}
           className="min-h-[44px] min-w-[44px] text-primary-foreground/60 hover:bg-white/10 hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
@@ -160,7 +160,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
           )}
         >
           <LogOut size={18} className="shrink-0" />
-          {!collapsed && <span>ออกจากระบบ</span>}
+          {!collapsed && <span>Log out</span>}
         </Button>
       </div>
     </aside>

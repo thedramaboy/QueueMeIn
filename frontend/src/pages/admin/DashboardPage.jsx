@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { th } from "date-fns/locale";
 import { reportService } from "../../services/report.service.js";
 import { CalendarDays, Users, TrendingUp, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,12 +34,12 @@ const STATUS_COLORS = {
 };
 
 const STATUS_LABELS = {
-  PENDING:     "รอยืนยัน",
-  CONFIRMED:   "ยืนยัน",
-  COMPLETED:   "เสร็จสิ้น",
-  CANCELLED:   "ยกเลิก",
-  NO_SHOW:     "ไม่มา",
-  RESCHEDULED: "เลื่อนนัด",
+  PENDING:     "Pending",
+  CONFIRMED:   "Confirmed",
+  COMPLETED:   "Completed",
+  CANCELLED:   "Cancelled",
+  NO_SHOW:     "No-show",
+  RESCHEDULED: "Rescheduled",
 };
 
 const StatCard = ({ label, value, icon: Icon, iconClassName }) => (
@@ -69,25 +68,25 @@ const DashboardPage = () => {
 
   const stats = [
     {
-      label: "การจองวันนี้",
+      label: "Today's bookings",
       value: data?.todayCount ?? 0,
       icon: CalendarDays,
       iconClassName: "bg-primary",
     },
     {
-      label: "รอยืนยัน",
+      label: "Pending",
       value: data?.pendingCount ?? 0,
       icon: Clock,
       iconClassName: "bg-amber-500",
     },
     {
-      label: "ลูกค้าทั้งหมด",
+      label: "Total patients",
       value: data?.totalPatients ?? 0,
       icon: Users,
       iconClassName: "bg-green-600",
     },
     {
-      label: "รายได้เดือนนี้",
+      label: "Revenue this month",
       value: data?.monthRevenue ? `฿${formatCurrency(data.monthRevenue)}` : "฿0",
       icon: TrendingUp,
       iconClassName: "bg-accent",
@@ -103,8 +102,8 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="แดชบอร์ด"
-        subtitle={format(new Date(), "EEEE dd MMMM yyyy", { locale: th })}
+        title="Dashboard"
+        subtitle={format(new Date(), "EEEE dd MMMM yyyy")}
       />
 
       {/* Stat cards */}
@@ -119,7 +118,7 @@ const DashboardPage = () => {
         {/* Monthly volume bar chart */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">การจองรายเดือน (12 เดือนล่าสุด)</CardTitle>
+            <CardTitle className="text-base">Monthly bookings (last 12 months)</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -141,7 +140,7 @@ const DashboardPage = () => {
                   />
                   <Tooltip
                     contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                    formatter={(v) => [v, "การจอง"]}
+                    formatter={(v) => [v, "Bookings"]}
                   />
                   <Bar dataKey="count" fill="var(--color-primary, #0F7E86)" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -153,14 +152,14 @@ const DashboardPage = () => {
         {/* Status breakdown pie chart */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">สถานะการจองเดือนนี้</CardTitle>
+            <CardTitle className="text-base">Booking status this month</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <ChartSkeleton height={220} />
             ) : pieData.length === 0 ? (
               <div className="flex items-center justify-center h-[220px]">
-                <p className="text-sm text-muted-foreground">ไม่มีข้อมูล</p>
+                <p className="text-sm text-muted-foreground">No data</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
@@ -197,44 +196,44 @@ const DashboardPage = () => {
       {/* Today's bookings table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">การจองวันนี้</CardTitle>
+          <CardTitle className="text-base">Today's bookings</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <TableSkeleton cols={5} rows={4} />
           ) : (data?.todayBookings ?? []).length === 0 ? (
-            <EmptyState message="ไม่มีการจองวันนี้" />
+            <EmptyState message="No bookings today" />
           ) : (
             <DataGrid
               rows={data.todayBookings}
               columns={[
                 {
                   field: "time",
-                  headerName: "เวลา",
+                  headerName: "Time",
                   width: 130,
                   valueGetter: (_, row) => `${row.startTime} – ${row.endTime}`,
                 },
                 {
                   field: "patient",
-                  headerName: "ลูกค้า",
+                  headerName: "Patient",
                   flex: 1,
                   valueGetter: (_, row) => row.patient?.nickname || row.patient?.firstName,
                 },
                 {
                   field: "service",
-                  headerName: "หัตถการ",
+                  headerName: "Service",
                   flex: 1,
                   valueGetter: (_, row) => row.service?.name,
                 },
                 {
                   field: "doctor",
-                  headerName: "หมอ",
+                  headerName: "Doctor",
                   flex: 1,
                   valueGetter: (_, row) => row.doctor?.name,
                 },
                 {
                   field: "status",
-                  headerName: "สถานะ",
+                  headerName: "Status",
                   width: 130,
                   renderCell: (params) => <StatusBadge status={params.row.status} />,
                 },

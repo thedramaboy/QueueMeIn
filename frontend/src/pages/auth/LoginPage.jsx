@@ -29,7 +29,7 @@ const LoginPage = () => {
       setAuth(res.data.user, res.data.token);
       navigate("/dashboard");
     } catch (error) {
-      setError(error.response?.data?.message || "ไม่สามารถ Login ได้");
+      setError(error.response?.data?.message || "Unable to log in");
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ const LoginPage = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">ระบบจองคลินิก</CardTitle>
+          <CardTitle className="text-2xl">Clinic Booking System</CardTitle>
         </CardHeader>
         <CardContent>
           {error && (
@@ -75,7 +75,7 @@ const LoginPage = () => {
             </div>
 
             <Button type="submit" disabled={loading} className="w-full rounded-full">
-              {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
         </CardContent>
